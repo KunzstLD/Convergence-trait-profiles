@@ -172,7 +172,7 @@ p2 <- vip(m3_ranger_permutation,
   )
  
 ## Plot variable importance
-# Most important variables in distinguishing TOG seems to be the pattern of development
+# Most important variables in distinguishing TPG seems to be the pattern of development
 # (and respiration tegument)
 # Maybe this analysis just using species with the same pattern of development
 # would be more meaningful?
