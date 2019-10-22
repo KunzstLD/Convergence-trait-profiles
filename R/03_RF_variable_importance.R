@@ -44,13 +44,6 @@ n_features <- length(setdiff(names(data), "Classf"))
 # ---------------------------------------------------------
 #### Tuning ####
 # ---------------------------------------------------------
-hyper_grid <- expand.grid(
-  mtry        = c(2, 10, 14, 40, 80),
-  node_size   = seq(1, 10, by = 3),
-  sample_size = c(.632, .80),
-  rmse = NA,
-  OOB_error = NA
-)
 
 # Grid for different hyperparameters
 hyper_grid <- expand.grid(
@@ -275,5 +268,3 @@ caret::confusionMatrix(factor(pred_class$predictions), factor(Traits_test$Classf
 #         factor(Traits_test$Classf, u))
 # pred_on_test_data[[i]] <-
 #   caret::confusionMatrix(t)$overall[["Accuracy"]]
-
-
