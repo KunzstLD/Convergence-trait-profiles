@@ -3,21 +3,21 @@
 # -------------------------------------------------------------
 
 # read in data
-data <- readRDS(file.path(".", "Data", "Trait_EU_agg.rds"))
+data <- readRDS(file.path(data_in, "Trait_EU_agg.rds"))
 
 # change NAs to zero (NAs are true zeros)
-for (j in names(data)) {
-  data.table::set(data, which(is.na(data[[j]])), j, 0)
-}
+# for (j in names(data)) {
+#   data.table::set(data, which(is.na(data[[j]])), j, 0)
+# }
 
 # analyse base way -> data table does not support row.names
 setDF(data)
 
 # turn cols into ordered factors
 trait_cols <- names(data)[!names(data) %like% "order|family"]
-data[, cols] <- lapply(data[, cols], as.ordered)
+data[, trait_cols] <- lapply(data[, trait_cols], as.ordered)
 
-# data with only two levels have to be numeric
+# data with only two levels have to be numeric 
 col_two_levels <- data[, -grep("order|family", names(data))] %>%
   lapply(levels) %>%
   lapply(., function(y)
