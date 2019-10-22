@@ -1,5 +1,6 @@
 # -------------------------------------------------------------
 # Analysis HC with Podani distance 
+# TODO: Analyse per Order
 # -------------------------------------------------------------
 
 # calculate gower dist
@@ -8,19 +9,18 @@ gowdis_podani <- gowdis(x = data[,-grep("order|family", names(data))], ord = "po
 # Check attributes (I - intervallscaled, n - nominal, O - ordered categories)
 # str(gowdis_podani)
 # summary(as.matrix(gowdis_podani))
-
 # "metric" just uses ranks, does not consider ties 
 #  gowdis_metric <- gowdis(x = data[, -1], ord = "metric")
 # Another option would be the daisy() function from the cluster
 # package. However, daisy is less flexible than gowdis() with regard to ordinal
 # variables -> gowdis(ord = "classic") reproduces behaviour of daisy, i.e.
 # ordinal variables are treated as continuous variables
-# gower_dist <- daisy(data[, -1],
-#   metric = "gower"
-# )
 
+# -------------------------------------------------------------
 #### Optimal number of groups ####
-# Gap statstic
+# Using the gap statstic
+# -------------------------------------------------------------
+
 # podani: 
 set.seed(1234)
 gap <- clusGap(x = as.matrix(gowdis_podani), FUN = mycluster_hc, K.max = 10, B = 500)
@@ -33,9 +33,11 @@ optimal_nog <- maxSE(gap$Tab[, "gap"], gap$Tab[, "SE.sim"], method="Tibs2001SEma
 # # determines location of maximum 
 # maxSE(gap$Tab[, "gap"], gap$Tab[, "SE.sim"], method="Tibs2001SEmax")
 
+# -------------------------------------------------------------
+#### Hierarchical clustering & Visualization ####
+# -------------------------------------------------------------
 
-#### HC & Visualization
-# hc
+# HC
 hc_taxa <- hclust(gowdis_podani, method = "ward.D2")
 
 # get labels of dendrogram 
@@ -47,12 +49,13 @@ dend_label <-
         by.x = "label",
         by.y = "family")
 
-# dendrogram 
-# with order as labels
+# Dendrogram with order as labels
+# TODO: Specify region in automated case 
 png(
   file = file.path(
-    data_out, "Graphs",
-    paste0("Dendrogram_order_podani_", name_dataset, ".png")
+    data_out,
+    "Graphs",
+    paste0("Dendrogram_order_podani_", "EU", ".png")
   ),
   width = 1100,
   height = 1300,
@@ -63,16 +66,17 @@ hc_taxa %>% as.dendrogram() %>%
   hang.dendrogram(hang_height = 0.005) %>%
   set("labels_cex", 0.75) %>%
   dendextend::ladderize() %>%
-  set("labels", dend_label$order) %>% 
-  plot(horiz = TRUE, main = paste("Dendrogram taxa (orders)", 
-                                  name_dataset))
+  set("labels", dend_label$order) %>%
+  plot(horiz = TRUE,
+       main = paste("Dendrogram taxa (orders)", "EU"))
 dev.off()
 
-# with families as labels
+# Dendrogram with families as labels
 png(
   file = file.path(
-    data_out, "Graphs",
-    paste0("Dendrogram_family_podani_", name_dataset, ".png")
+    data_out,
+    "Graphs",
+    paste0("Dendrogram_family_podani_", "EU", ".png")
   ),
   width = 1100,
   height = 1300,
@@ -82,72 +86,84 @@ hc_taxa %>% as.dendrogram() %>%
   color_branches(k = optimal_nog) %>%
   hang.dendrogram(hang_height = 0.005) %>%
   set("labels_cex", 0.75) %>%
-  dendextend::ladderize() %>% 
-  plot(horiz = TRUE, main = paste("Dendrogram taxa (families)", 
-                                  name_dataset))
+  dendextend::ladderize() %>%
+  plot(horiz = TRUE,
+       main = paste("Dendrogram taxa (families)", "EU"))
 dev.off()
 
-
+# -------------------------------------------------------------
 #### Save clustered groups for further analysis ####
+# TODO: Edit during automation
+# -------------------------------------------------------------
+
 # get groups
 dend_taxa_podani <- as.dendrogram(hc_taxa)
-
-# grouping of taxa
-data_cluster[[i]] <-
+data_cluster <-
   data.table(
     taxa = names(cutree(dend_taxa_podani, k = optimal_nog)),
     groups_podani = cutree(dend_taxa_podani, k = optimal_nog)
   )
+data_cluster <- merge(data_cluster,
+                      data[, c("order", "family")],
+                      by.x = "taxa",
+                      by.y = "family")
+# # grouping of taxa
+# data_cluster[[i]] <-
+#   data.table(
+#     taxa = names(cutree(dend_taxa_podani, k = optimal_nog)),
+#     groups_podani = cutree(dend_taxa_podani, k = optimal_nog)
+#   )
+# 
+# # merge back order information
+# data_cluster[[i]] <- merge(data_cluster[[i]], data[, c("order", "family")], 
+#                            by.x = "taxa", by.y = "family")
 
-# merge back order information
-data_cluster[[i]] <- merge(data_cluster[[i]], data[, c("order", "family")], 
-                           by.x = "taxa", by.y = "family")
-
-# Display traits as dendrogram & trait profiles as heatmap ----------------------------
+# -----------------------------------------------------------------
+#### Display traits as dendrogram & trait profiles as heatmap ####
+# -----------------------------------------------------------------
 
 # clustering of traits -> transpose trait data
-trait_transpose <- as.data.frame(t(data[, -grep("order|family", names(data))])) 
-# change columns to ordered 
-cols <- names(trait_transpose)
-trait_transpose[, cols] <- lapply(trait_transpose[, cols], as.ordered)
-
-# transform "binary" columns to numeric 
-col_two_levels <- trait_transpose %>%
-  lapply(levels) %>%
-  lapply(., function(y)
-    length(y)[length(y) == 2]) %>%
-  unlist %>%
-  names
-if(length(col_two_levels) == 1) {
-  trait_transpose[[col_two_levels]] <- sapply(trait_transpose[[col_two_levels]], as.numeric)
-}
-if (length(col_two_levels) > 1) {
-  trait_transpose[, col_two_levels] <- lapply(trait_transpose[, col_two_levels], as.numeric)
-}
-
-# dist mat
-gower_dist_trait <- gowdis(trait_transpose,
-                           ord = "podani")
-# hc object
-hc_trait <- hclust(gower_dist_trait, method = "ward.D2")
-
-# plot & safe
-png(
-  file = file.path(data_out, "Graphs", paste0(
-    "Dendrogram_traits_podani_", name_dataset,".png"
-  )),
-  width = 1100,
-  height = 1300,
-  res = 100
-)
-hc_trait %>% as.dendrogram() %>%
-  #  color_branches(k = optimal_nog) %>%
-  hang.dendrogram(hang_height = 0.01) %>%
-  set("labels_cex", 0.75) %>%
-  dendextend::ladderize() %>%
-  plot(horiz = TRUE, main = paste("Dendrogram traits", name_dataset))
-dev.off()
-
+# trait_transpose <- as.data.frame(t(data[, -grep("order|family", names(data))])) 
+# # change columns to ordered 
+# cols <- names(trait_transpose)
+# trait_transpose[, cols] <- lapply(trait_transpose[, cols], as.ordered)
+# 
+# # transform "binary" columns to numeric 
+# col_two_levels <- trait_transpose %>%
+#   lapply(levels) %>%
+#   lapply(., function(y)
+#     length(y)[length(y) == 2]) %>%
+#   unlist %>%
+#   names
+# if(length(col_two_levels) == 1) {
+#   trait_transpose[[col_two_levels]] <- sapply(trait_transpose[[col_two_levels]], as.numeric)
+# }
+# if (length(col_two_levels) > 1) {
+#   trait_transpose[, col_two_levels] <- lapply(trait_transpose[, col_two_levels], as.numeric)
+# }
+# 
+# # dist mat
+# gower_dist_trait <- gowdis(trait_transpose,
+#                            ord = "podani")
+# # hc object
+# hc_trait <- hclust(gower_dist_trait, method = "ward.D2")
+# 
+# # plot & safe
+# png(
+#   file = file.path(data_out, "Graphs", paste0(
+#     "Dendrogram_traits_podani_", name_dataset,".png"
+#   )),
+#   width = 1100,
+#   height = 1300,
+#   res = 100
+# )
+# hc_trait %>% as.dendrogram() %>%
+#   #  color_branches(k = optimal_nog) %>%
+#   hang.dendrogram(hang_height = 0.01) %>%
+#   set("labels_cex", 0.75) %>%
+#   dendextend::ladderize() %>%
+#   plot(horiz = TRUE, main = paste("Dendrogram traits", name_dataset))
+# dev.off()
 
 #### heatmap
 # does not work properly yet
