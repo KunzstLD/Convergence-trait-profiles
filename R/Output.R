@@ -35,6 +35,8 @@ for(i in seq_along(file_list)){
 
 # _________________________________________________________
 #### Subsets ####
+# TODO: For subset analysis remove trait that is subsetted?
+# Remarks: dev_holometabol -> too few species in NoA dataset
 # _________________________________________________________
 
 # original aggregated data
@@ -50,7 +52,7 @@ pred_on_test_data <- list()
 most_important_variables <- list()
 
 # choose trait to subset
-trait_subsetted <- "dev_hemimetabol"
+trait_subsetted <- "dev_holometabol"
 
 for (i in seq_along(file_list)) {
 
@@ -75,3 +77,8 @@ for (i in seq_along(file_list)) {
   # RF
   source(file.path(data_scr, "03_RF_variable_importance.R"))
 }
+
+
+
+
+
