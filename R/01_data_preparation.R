@@ -1,5 +1,7 @@
 # ______________________________________________________________
 # Data preparation 
+# TODO: col_two_levels actually selects also for columns with less than
+# two levels
 # ______________________________________________________________
 
 # read in data
