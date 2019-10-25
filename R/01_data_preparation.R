@@ -1,14 +1,9 @@
-# -------------------------------------------------------------
+# ______________________________________________________________
 # Data preparation 
-# -------------------------------------------------------------
+# ______________________________________________________________
 
 # read in data
-data <- readRDS(file.path(data_in, "Trait_EU_agg.rds"))
-
-# change NAs to zero (NAs are true zeros)
-# for (j in names(data)) {
-#   data.table::set(data, which(is.na(data[[j]])), j, 0)
-# }
+# data <- readRDS(file.path(data_in, "Trait_AUS_agg.rds"))
 
 # analyse base way -> data table does not support row.names
 setDF(data)
