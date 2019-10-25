@@ -1,3 +1,26 @@
+# _________________________________________________________________________
+#### Data handling ####
+# _________________________________________________________________________
+
+# loads RDS data from input directory, stores them in a list
+# and assigns a name (filename)
+load_data <- function(pattern, path){
+  files <- list.files(path = path, pattern = pattern)
+  data <- lapply(files, function(y) readRDS(file = file.path(data_in, y)))
+  data <- setNames(data, files)
+  data
+}
+
+# In case for subsetting (currently only for one variable can be subsetted)
+subset_trait_data <- function(data, trait, trait_value){
+  data  <- data[get(trait) == trait_value, ]
+  data
+}
+
+# _________________________________________________________________________
+#### Statistical Analysis
+# _________________________________________________________________________
+
 # Clustering --------------------------------------------------------------
 mycluster_hc <- function(x, k) {
   list(cluster = cutree(hclust(as.dist(x),
@@ -12,3 +35,4 @@ custom_pred <- function(object, newdata) {
   avg <- purrr::map_df(as.data.frame(pred), mean)
   return(avg)
 }
+
