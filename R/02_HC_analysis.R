@@ -1,7 +1,7 @@
-# -------------------------------------------------------------
+# ________________________________________________________
 # Analysis HC with Podani distance 
 # TODO: Analyse per Order
-# -------------------------------------------------------------
+# ________________________________________________________
 
 # calculate gower dist
 # podani takes into account ties
@@ -16,10 +16,10 @@ gowdis_podani <- gowdis(x = data[,-grep("order|family", names(data))], ord = "po
 # variables -> gowdis(ord = "classic") reproduces behaviour of daisy, i.e.
 # ordinal variables are treated as continuous variables
 
-# -------------------------------------------------------------
+# ________________________________________________________
 #### Optimal number of groups ####
 # Using the gap statstic
-# -------------------------------------------------------------
+# ________________________________________________________
 
 # podani: 
 set.seed(1234)
@@ -33,10 +33,9 @@ optimal_nog <- maxSE(gap$Tab[, "gap"], gap$Tab[, "SE.sim"], method="Tibs2001SEma
 # # determines location of maximum 
 # maxSE(gap$Tab[, "gap"], gap$Tab[, "SE.sim"], method="Tibs2001SEmax")
 
-# -------------------------------------------------------------
+# ________________________________________________________
 #### Hierarchical clustering & Visualization ####
-# -------------------------------------------------------------
-
+# ________________________________________________________
 # HC
 hc_taxa <- hclust(gowdis_podani, method = "ward.D2")
 
@@ -55,7 +54,7 @@ png(
   file = file.path(
     data_out,
     "Graphs",
-    paste0("Dendrogram_order_podani_", "EU", ".png")
+    paste0("Dendrogram_order_podani_", name_dataset, ".png")
   ),
   width = 1100,
   height = 1300,
@@ -68,7 +67,7 @@ hc_taxa %>% as.dendrogram() %>%
   dendextend::ladderize() %>%
   set("labels", dend_label$order) %>%
   plot(horiz = TRUE,
-       main = paste("Dendrogram taxa (orders)", "EU"))
+       main = paste("Dendrogram taxa (orders)", name_dataset))
 dev.off()
 
 # Dendrogram with families as labels
@@ -76,7 +75,7 @@ png(
   file = file.path(
     data_out,
     "Graphs",
-    paste0("Dendrogram_family_podani_", "EU", ".png")
+    paste0("Dendrogram_family_podani_", name_dataset, ".png")
   ),
   width = 1100,
   height = 1300,
@@ -88,39 +87,31 @@ hc_taxa %>% as.dendrogram() %>%
   set("labels_cex", 0.75) %>%
   dendextend::ladderize() %>%
   plot(horiz = TRUE,
-       main = paste("Dendrogram taxa (families)", "EU"))
+       main = paste("Dendrogram taxa (families)", name_dataset))
 dev.off()
 
-# -------------------------------------------------------------
+# ________________________________________________________
 #### Save clustered groups for further analysis ####
 # TODO: Edit during automation
-# -------------------------------------------------------------
+# ________________________________________________________
 
 # get groups
 dend_taxa_podani <- as.dendrogram(hc_taxa)
-data_cluster <-
+
+# grouping of taxa
+data_cluster[[i]] <-
   data.table(
     taxa = names(cutree(dend_taxa_podani, k = optimal_nog)),
     groups_podani = cutree(dend_taxa_podani, k = optimal_nog)
   )
-data_cluster <- merge(data_cluster,
-                      data[, c("order", "family")],
-                      by.x = "taxa",
-                      by.y = "family")
-# # grouping of taxa
-# data_cluster[[i]] <-
-#   data.table(
-#     taxa = names(cutree(dend_taxa_podani, k = optimal_nog)),
-#     groups_podani = cutree(dend_taxa_podani, k = optimal_nog)
-#   )
-# 
-# # merge back order information
-# data_cluster[[i]] <- merge(data_cluster[[i]], data[, c("order", "family")], 
-#                            by.x = "taxa", by.y = "family")
 
-# -----------------------------------------------------------------
+# merge back order information
+data_cluster[[i]] <- merge(data_cluster[[i]], data[, c("order", "family")],
+                           by.x = "taxa", by.y = "family")
+
+# ________________________________________________________________
 #### Display traits as dendrogram & trait profiles as heatmap ####
-# -----------------------------------------------------------------
+# ________________________________________________________________
 
 # clustering of traits -> transpose trait data
 # trait_transpose <- as.data.frame(t(data[, -grep("order|family", names(data))])) 
