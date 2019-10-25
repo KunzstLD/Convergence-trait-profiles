@@ -1,13 +1,12 @@
-# Multinominal classification random forest  -------------------------------------------------
+# ________________________________________________________
+# Multinominal classification random forest 
 # TODO: Update RF tuning
-# Automation 
-# Create a script for graphics
+ # Create a script for graphics
+# ________________________________________________________
 
-# merge cluster form HC to data
-# data <- merge(data, data_cluster[[i]][, c("taxa", "groups_podani")],
-#               by.x = "family", by.y = "taxa")
+# merge clusters from HC to data
 data <- merge(data, 
-              data_cluster[, c("taxa", "groups_podani")],
+              data_cluster[[i]][, c("taxa", "groups_podani")],
               by.x = "family", 
               by.y = "taxa")
 
@@ -37,7 +36,6 @@ n_features <- length(setdiff(names(data), "Classf"))
 #   verbose = FALSE,
 #   seed = 123
 # )
-
 # confusion matrix (error matrix)
 # m_ranger$confusion.matrix
 
@@ -76,10 +74,6 @@ for (j in 1:nrow(hyper_grid)) {
 # two configurations lead to lowest OOB error
 hyper_grid[order(hyper_grid$OOB_error),] %>%
   head(., 10)
-
-# default prediction error:
-m_ranger$prediction.error
-# Could also use the OOB RMSE
 
 # For multiple columns use
 # hyper_grid[with(hyper_grid, order(OOB_error)),]
@@ -140,16 +134,15 @@ m3_ranger_permutation <- ranger(
 
 # Zero variables were not used for a split
 # length(which(m3_ranger_impurity$variable.importance == 0))
-
 # Zero variables whose values were randomized had no influence on the performance of the rf model
 # length(which(m3_ranger_permutation$variable.importance == 0))
 
-## most important variables according to impurtiy-based VI in distinguishing TPGs
+#### most important variables according to impurtiy-based VI in distinguishing TPGs ####
 # TODO: Automate
-p1 <- vip(m3_ranger_impurity,
+impo_imp <- vip(m3_ranger_impurity,
           num_features = n_features,
           bar = FALSE) +
-  ggtitle(paste("Impurity-based variable importance", "EU")) +
+  ggtitle(paste("Impurity-based variable importance", name_dataset)) +
   geom_point(size = 3) +
   theme_bw() +
   theme(
@@ -158,11 +151,11 @@ p1 <- vip(m3_ranger_impurity,
     axis.text.y = element_text(family = "Fira", size = 11)
   )
  
-## most important variables according to permutation-based VI in distinguishing TPGs
-p2 <- vip(m3_ranger_permutation,
+#### most important variables according to permutation-based VI in distinguishing TPGs ####
+impo_perm <- vip(m3_ranger_permutation,
           num_features = 24,
           bar = FALSE) +
-  ggtitle(paste("Permutation-based variable importance", "EU")) +
+  ggtitle(paste("Permutation-based variable importance", name_dataset)) +
   geom_point(size = 3) +
   theme_bw() +
   theme(
@@ -171,23 +164,26 @@ p2 <- vip(m3_ranger_permutation,
     axis.text.y = element_text(family = "Fira", size = 11)
   )
  
-## Plot variable importance
-# Most important variables in distinguishing TPG seems to be the pattern of development
-# (and respiration tegument)
-# Maybe this analysis just using species with the same pattern of development
-# would be more meaningful?
+# Plot variable importance
 png(
   file = file.path(
     data_out,
     "Graphs",
-    paste0("Variable_importance_", "EU", ".png")
+    paste0("Variable_importance_", name_dataset, ".png")
   ),
   width = 1500,
   height = 1300,
   res = 100
 )
-gridExtra::grid.arrange(p1, p2, nrow = 1)
+gridExtra::grid.arrange(impo_imp, 
+                        impo_perm, 
+                        nrow = 1)
 dev.off()
+
+# get most important variables
+most_important_variables[[i]] <- data.frame(importance_impurity = impo_imp$data$Variable[1:5], 
+                                            importance_permutation = impo_perm$data$Variable[1:5],
+                                            region = name_dataset) 
 
 # #### Feature effects ####
 # # # Select certain features and inspect on which category this variable
@@ -257,14 +253,14 @@ dev.off()
 #### Predict for the test (unseen) data
 # ------------------------------------------------------------------
 pred_class <-
-  predict(m3_ranger_impurity, Traits_test[, -grep("Classf", names(Traits_test))])
+   predict(m3_ranger_impurity, Traits_test[, -grep("Classf", names(Traits_test))])
+# 
+# # Asses performance on test data
+# pred_on_test_data[[i]] <- caret::confusionMatrix(factor(pred_class$predictions), 
+#                                                  factor(Traits_test$Classf))$overall[["Accuracy"]]
+u <- union(pred_class$predictions, Traits_test$Classf)
+t <- table(factor(pred_class$predictions, u),
+           factor(Traits_test$Classf, u))
+pred_on_test_data[[i]] <- caret::confusionMatrix(t)$overall[["Accuracy"]]
 
-# Asses performance on test data
-caret::confusionMatrix(factor(pred_class$predictions), factor(Traits_test$Classf))$overall[["Accuracy"]]
 
-# u <- union(pred_class$predictions, Traits_test$Classf)
-# t <-
-#   table(factor(pred_class$predictions, u),
-#         factor(Traits_test$Classf, u))
-# pred_on_test_data[[i]] <-
-#   caret::confusionMatrix(t)$overall[["Accuracy"]]
