@@ -5,7 +5,7 @@
 
 # calculate gower dist
 # podani takes into account ties
-gowdis_podani <- gowdis(x = data[,-grep("order|family", names(data))], ord = "podani")
+gowdis_podani <- gowdis(x = data[,-grep("order|family", names(data))])# ord = "podani")
 # Check attributes (I - intervallscaled, n - nominal, O - ordered categories)
 # str(gowdis_podani)
 # summary(as.matrix(gowdis_podani))
