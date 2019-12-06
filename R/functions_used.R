@@ -17,6 +17,23 @@ subset_trait_data <- function(data, trait, trait_value){
   data
 }
 
+# check if columnNR of elements in a list is the same
+check_columnNr <- function(x){
+  ck <- lapply(x, length) %>% unlist()
+  if(abs(max(ck) - min(ck)) == 0){
+    print("Files have the same number of columns")
+  }
+}
+
+# check if colnames of data.frames stored in a list are the same 
+# TODO: Improve output, but message when colnames differ
+check_colNames <- function(x) {
+  col_names_first_element <- lapply(x, names)[[1]]
+  lapply(x, function(y) {
+    all(names(y) %in% col_names_first_element)
+  })
+}
+
 # _________________________________________________________________________
 #### Statistical Analysis
 # _________________________________________________________________________
