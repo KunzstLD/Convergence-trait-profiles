@@ -21,7 +21,7 @@ data <- data[, -grep("order|family", names(data))]
 
 # create training and test data set
 set.seed(123)
-split <- initial_split(data[, -1], prop = .63, strata = "Classf")
+split <- initial_split(data[, -1], prop = .70, strata = "Classf")
 Traits_train <- training(split)
 Traits_test  <- testing(split)
 
