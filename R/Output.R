@@ -5,6 +5,9 @@
 # load data
 file_list <- load_data(pattern = "*.rds", path = data_in)
 
+# checks if they have the same colnames
+# file_list %>% check_colNames()
+
 # initialize list for clustered output data
 data_cluster <- list()
 
@@ -31,7 +34,6 @@ for(i in seq_along(file_list)){
   source(file.path(data_scr, "03_RF_variable_importance.R"))
   
 }
-
 
 # _________________________________________________________
 #### Subsets ####
