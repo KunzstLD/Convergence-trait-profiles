@@ -11,8 +11,8 @@
 setDF(data)
 
 # turn cols into ordered factors
-trait_cols <- names(data)[!names(data) %like% "order|family"]
-data[, trait_cols] <- lapply(data[, trait_cols], as.ordered)
+# trait_cols <- names(data)[!names(data) %like% "order|family"]
+# data[, trait_cols] <- lapply(data[, trait_cols], as.ordered)
 
 # data with only two levels have to be numeric 
 col_two_levels <- data[, -grep("order|family", names(data))] %>%
