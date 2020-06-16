@@ -1,32 +1,28 @@
 # ________________________________________________________
-# Analysis HC with Podani distance 
+# Analysis HC with approrpiate distance 
+# for fuzzy coded traits 
 # TODO: Analyse per Order
 # ________________________________________________________
 
-# calculate gower dist
-# podani takes into account ties
-gowdis_podani <- gowdis(x = data[,-grep("order|family", names(data))])# ord = "podani")
-# Check attributes (I - intervallscaled, n - nominal, O - ordered categories)
-# str(gowdis_podani)
-# summary(as.matrix(gowdis_podani))
-# "metric" just uses ranks, does not consider ties 
-#  gowdis_metric <- gowdis(x = data[, -1], ord = "metric")
-# Another option would be the daisy() function from the cluster
-# package. However, daisy is less flexible than gowdis() with regard to ordinal
-# variables -> gowdis(ord = "classic") reproduces behaviour of daisy, i.e.
-# ordinal variables are treated as continuous variables
+# TODO: Try using chord distance with blocks 
+# from prep.fuzzy.var()
+dist_mat <- daisy(x = data[,-grep("order|family", names(data))])
 
 # ________________________________________________________
 #### Optimal number of groups ####
 # Using the gap statstic
 # ________________________________________________________
 
-# podani: 
 set.seed(1234)
-gap <- clusGap(x = as.matrix(gowdis_podani), FUN = mycluster_hc, K.max = 10, B = 500)
+gap <- clusGap(x = as.matrix(dist_mat), 
+               FUN = mycluster_hc, 
+               K.max = 18, 
+               B = 500)
 # plot(gap)
 # determines location of maximum 
-optimal_nog <- maxSE(gap$Tab[, "gap"], gap$Tab[, "SE.sim"], method="Tibs2001SEmax")
+optimal_nog <- maxSE(gap$Tab[, "gap"], 
+                     gap$Tab[, "SE.sim"],
+                     method="Tibs2001SEmax")
 
 # metric:
 # gap <- clusGap(x = as.matrix(gowdis_metric), FUN = mycluster_hc, K.max = 10, B = 500)
@@ -35,11 +31,13 @@ optimal_nog <- maxSE(gap$Tab[, "gap"], gap$Tab[, "SE.sim"], method="Tibs2001SEma
 
 # ________________________________________________________
 #### Hierarchical clustering & Visualization ####
+# TODO: test the influence of ward.D, ward.D2 and
+# other, see also Everitt and
+# https://cran.r-project.org/web/packages/dendextend/vignettes/Cluster_Analysis.html#animals---attributes-of-animals
 # ________________________________________________________
-# HC
-hc_taxa <- hclust(gowdis_podani, method = "ward.D2")
+hc_taxa <- hclust(dist_mat, method = "ward.D")
 
-# get labels of dendrogram 
+# get labels of dendrogram
 # merge the according order information to the labels
 dend_label <- hc_taxa %>% as.dendrogram() %>% labels()
 dend_label <-
@@ -49,12 +47,12 @@ dend_label <-
         by.y = "family")
 
 # Dendrogram with order as labels
-# TODO: Specify region in automated case 
+# TODO: Specify region in automated case
 png(
   file = file.path(
     data_out,
     "Graphs",
-    paste0("Dendrogram_order_podani_", name_dataset, ".png")
+    paste0("Dendrogram_", sub("\\.rds", "", dataset), ".png")
   ),
   width = 1100,
   height = 1300,
@@ -67,7 +65,7 @@ hc_taxa %>% as.dendrogram() %>%
   dendextend::ladderize() %>%
   set("labels", dend_label$order) %>%
   plot(horiz = TRUE,
-       main = paste("Dendrogram taxa (orders)", name_dataset))
+       main = paste("Dendrogram taxa (orders)", sub("\\.rds", "", dataset)))
 dev.off()
 
 # Dendrogram with families as labels
@@ -75,7 +73,7 @@ png(
   file = file.path(
     data_out,
     "Graphs",
-    paste0("Dendrogram_family_podani_", name_dataset, ".png")
+    paste0("Dendrogram_family_", sub("\\.rds", "", dataset), ".png")
   ),
   width = 1100,
   height = 1300,
@@ -87,7 +85,7 @@ hc_taxa %>% as.dendrogram() %>%
   set("labels_cex", 0.75) %>%
   dendextend::ladderize() %>%
   plot(horiz = TRUE,
-       main = paste("Dendrogram taxa (families)", name_dataset))
+       main = paste("Dendrogram taxa (families)", sub("\\.rds", "", dataset)))
 dev.off()
 
 # ________________________________________________________
@@ -96,18 +94,19 @@ dev.off()
 # ________________________________________________________
 
 # get groups
-dend_taxa_podani <- as.dendrogram(hc_taxa)
+dend_taxa <- as.dendrogram(hc_taxa)
 
 # grouping of taxa
-data_cluster[[i]] <-
+data_cluster[[dataset]] <-
   data.table(
-    taxa = names(cutree(dend_taxa_podani, k = optimal_nog)),
-    groups_podani = cutree(dend_taxa_podani, k = optimal_nog)
+    taxa = names(cutree(dend_taxa, k = optimal_nog)),
+    groups = cutree(dend_taxa, k = optimal_nog)
   )
 
 # merge back order information
-data_cluster[[i]] <- merge(data_cluster[[i]], data[, c("order", "family")],
-                           by.x = "taxa", by.y = "family")
+data_cluster[[dataset]] <-
+  merge(data_cluster[[dataset]], data[, c("order", "family")],
+        by.x = "taxa", by.y = "family")
 
 # ________________________________________________________________
 #### Display traits as dendrogram & trait profiles as heatmap ####
