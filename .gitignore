@@ -5,3 +5,6 @@
 
 # Rproj file
 *.Rproj
+
+# Output
+Output/
