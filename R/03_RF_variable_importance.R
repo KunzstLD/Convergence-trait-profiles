@@ -6,12 +6,12 @@
 
 # merge clusters from HC to data
 data <- merge(data, 
-              data_cluster[[i]][, c("taxa", "groups_podani")],
+              data_cluster[[dataset]][, c("taxa", "groups")],
               by.x = "family", 
               by.y = "taxa")
 
 # rename response variable
-names(data)[names(data) %in% "groups_podani"] <- "Classf"
+names(data)[names(data) %in% "groups"] <- "Classf"
 
 # response variable has to be encoded as factor or character
 data$Classf <- as.factor(data$Classf)
@@ -140,9 +140,9 @@ m3_ranger_permutation <- ranger(
 #### most important variables according to impurtiy-based VI in distinguishing TPGs ####
 # TODO: Automate
 impo_imp <- vip(m3_ranger_impurity,
-          num_features = n_features,
+          num_features = 5,
           bar = FALSE) +
-  ggtitle(paste("Impurity-based variable importance", name_dataset)) +
+  ggtitle(paste("Impurity-based variable importance", dataset)) +
   geom_point(size = 3) +
   theme_bw() +
   theme(
@@ -152,10 +152,10 @@ impo_imp <- vip(m3_ranger_impurity,
   )
  
 #### most important variables according to permutation-based VI in distinguishing TPGs ####
-impo_perm <- vip(m3_ranger_permutation,
-          num_features = 24,
+impo_perm[[dataset]] <- vip(m3_ranger_permutation,
+          num_features = 5,
           bar = FALSE) +
-  ggtitle(paste("Permutation-based variable importance", name_dataset)) +
+  ggtitle(paste(dataset)) + #Permutation-based variable importance
   geom_point(size = 3) +
   theme_bw() +
   theme(
@@ -165,25 +165,28 @@ impo_perm <- vip(m3_ranger_permutation,
   )
  
 # Plot variable importance
-png(
-  file = file.path(
-    data_out,
-    "Graphs",
-    paste0("Variable_importance_", name_dataset, ".png")
-  ),
-  width = 1500,
-  height = 1300,
-  res = 100
-)
-gridExtra::grid.arrange(impo_imp, 
-                        impo_perm, 
-                        nrow = 1)
-dev.off()
-
-# get most important variables
-most_important_variables[[i]] <- data.frame(importance_impurity = impo_imp$data$Variable[1:5], 
-                                            importance_permutation = impo_perm$data$Variable[1:5],
-                                            region = name_dataset) 
+# png(
+#   file = file.path(
+#     data_out,
+#     "Graphs",
+#     paste0("Variable_importance_", dataset, ".png")
+#   ),
+#   width = 1500,
+#   height = 1300,
+#   res = 100
+# )
+# gridExtra::grid.arrange(impo_imp, 
+#                         impo_perm, 
+#                         nrow = 1)
+# dev.off()
+# 
+# # get most important variables
+# most_important_variables[[dataset]] <-
+#   data.frame(
+#     importance_impurity = impo_imp$data$Variable[1:10],
+#     importance_permutation = impo_perm$data$Variable[1:10],
+#     region = dataset
+#   ) 
 
 # #### Feature effects ####
 # # # Select certain features and inspect on which category this variable
@@ -261,6 +264,6 @@ pred_class <-
 u <- union(pred_class$predictions, Traits_test$Classf)
 t <- table(factor(pred_class$predictions, u),
            factor(Traits_test$Classf, u))
-pred_on_test_data[[i]] <- caret::confusionMatrix(t)$overall[["Accuracy"]]
+pred_on_test_data[[dataset]] <- caret::confusionMatrix(t)$overall[["Accuracy"]]
 
 
