@@ -23,10 +23,10 @@ col_two_levels <- data[, -grep("order|family", names(data))] %>%
   names
 
 if(length(col_two_levels) == 1) {
-  data[[col_two_levels]] <- sapply(data[[col_two_levels]], as.numeric)
+  data[[col_two_levels]] <- sapply(data[[col_two_levels]], as.double)
 }
 if (length(col_two_levels) > 1) {
-  data[, col_two_levels] <- lapply(data[, col_two_levels], as.numeric)
+  data[, col_two_levels] <- lapply(data[, col_two_levels], as.double)
 }
 
 # add row.names
