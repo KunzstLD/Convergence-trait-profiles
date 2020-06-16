@@ -2,11 +2,11 @@
 #### Data handling ####
 # _________________________________________________________________________
 
-# loads RDS data from input directory, stores them in a list
+# loads data from input directory, stores them in a list
 # and assigns a name (filename)
-load_data <- function(pattern, path){
+load_data <- function(path, pattern){
   files <- list.files(path = path, pattern = pattern)
-  data <- lapply(files, function(y) readRDS(file = file.path(data_in, y)))
+  data <- lapply(files, function(y) readRDS(file = file.path(path, y)))
   data <- setNames(data, files)
   data
 }
