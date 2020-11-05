@@ -15,7 +15,7 @@ names(data)[names(data) %in% "groups"] <- "Classf"
 
 # response variable has to be encoded as factor or character
 data$Classf <- as.factor(data$Classf)
-
+  
 # remove taxonomical information
 data <- data[, -grep("order|family", names(data))]
 

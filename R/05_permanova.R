@@ -16,7 +16,7 @@ trait_comb[, region := sub("([A-z]{5})(\\_)([A-z]{2,})(\\_)([A-z]{3})(.+)", "\\3
 # define region vec
 region <- trait_comb$region
 
-trait_comb[, family_p_region := paste0(family, "_",region)]
+trait_comb[, family_p_region := paste0(family, "_", region)]
 trait_comb[, c("family", "order", "region") := NULL]
 setDF(trait_comb)
 rownames(trait_comb) <- trait_comb$family_p_region
@@ -47,4 +47,3 @@ bd
 
 # However, distances are stat. significantly different (i.e. dispersion is different)
 permutest(bd)
-

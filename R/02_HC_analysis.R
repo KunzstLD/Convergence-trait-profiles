@@ -110,6 +110,7 @@ data_cluster[[dataset]] <-
 
 # ________________________________________________________________
 #### Display traits as dendrogram & trait profiles as heatmap ####
+# TODO: this is something to after the analysis
 # ________________________________________________________________
 
 # clustering of traits -> transpose trait data
