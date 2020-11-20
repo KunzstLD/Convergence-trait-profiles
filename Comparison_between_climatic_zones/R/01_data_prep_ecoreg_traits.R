@@ -46,15 +46,20 @@ lookup <- base::merge(
 # get ecoregions columns
 er_cols <- grep("ER[0-9]{1,}", names(traits_EU), value = TRUE)
 
+# select from trait data taxa and ecoregions
+ecoreg_data <- traits_EU[, c(er_cols, "ID_AQEM")]
+
 # melt is a data.table function but also works with data.frames 
 # in case traits_EU is a data.frame (ignore warning for now)
-traits_EU_lf <- melt(traits_EU, measure.vars = er_cols, variable = "key_col")
+ecoreg_data_lf <- melt(ecoreg_data, 
+                       measure.vars = er_cols,
+                       variable = "key_col")
 
 # subset only to species that have a classification in ecoregions
 # data.table way:
 # traits_EU_lf_sb <- traits_EU_lf[!is.na(value), ]
 # base way:
-traits_EU_lf_sb <- traits_EU_lf[!is.na(traits_EU_lf$value), ]
+ecoreg_data_lf <- ecoreg_data_lf[!is.na(ecoreg_data_lf$value), ]
 
 # merge with lookup
 # data.table way:
@@ -63,21 +68,29 @@ traits_EU_lf_sb <- traits_EU_lf[!is.na(traits_EU_lf$value), ]
 #                            SecKoppenClas = i.SecKoppenClas),
 #                 on = "key_col"]
 # base:
-traits_EU_lf_sb <- base::merge(x = traits_EU_lf_sb,
-                               y = lookup,
-                               by = "key_col",
-                               all.x = TRUE)
+ecoreg_data_lf <- base::merge(x = ecoreg_data_lf,
+                              y = lookup,
+                              by = "key_col",
+                              all.x = TRUE)
 
 # TODO: transform back to wide format
 # base:
 # something like this could be the solution, but we need to include all variables
 # could also create a subset with just the ecoregions and ID_AQEM and then merge back
 # to the trait data
-test <- traits_EU_lf_sb[!is.na(traits_EU_lf_sb$ecoregion), ]
-reshape2::dcast(test, ID_AQEM + KoppenClas + SecKC ~ key_col)
+test <- ecoreg_data_lf[!is.na(ecoreg_data_lf$ecoregion), ]
 
+# test <- reshape2::dcast(test, ID_AQEM + KoppenClas + SecKC ~ key_col)
 
+# check those who have a different first and second Köppen classification
+subset_dfc <- test[test$KoppenClas == "Dfc", c("key_col", "ID_AQEM", "KoppenClas")] 
 
+setDT(traits_EU)
+traits_EU[ID_AQEM %in% unique(subset_dfc$ID_AQEM), ]
+
+# How many regions do we have? 
+# Species can occur in multiple regions, how to deal with that?
+# lookup table ecoregion & key 
 
 
 
