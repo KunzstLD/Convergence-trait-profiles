@@ -23,11 +23,23 @@ setDT(ecoreg_kg)
 # loaded as .csv
 traits_EU <- read.csv(file.path(data_in, "Trait_freshecol_2020_pp_harmonized_ecoregions.csv"))
 
-# lookup table: 
-# lookup <- data.table(ecoregion = c("Tundra", "Taiga"), 
-#                    key_col = c("ER21", "ER23"))
-lookup <- data.frame(ecoregion = c("Tundra", "Taiga"), 
-                   key_col = c("ER21", "ER23"))
+# lookup table for ecoregions: 
+lookup_ER <- readRDS(file.path(
+  getwd(),
+  "Comparison_between_climatic_zones",
+  "Data",
+  "ER_lookup.rds"
+))
+
+# Meaning KG classifcation
+meaning_KG <- fread(
+  file.path(
+    getwd(),
+    "Comparison_between_climatic_zones",
+    "Data",
+    "Klimaklassifikationen_Koppen_Geiger.txt"
+  )
+)
 
 # merge with KG classification
 # data.table way:
@@ -93,12 +105,3 @@ traits_EU[ID_AQEM %in% unique(subset_dfc$ID_AQEM), ]
 # Subset of Trait databases to the respective climate regions
 # Species can occur in multiple regions -> First analysis without these species
 # Separate Cluster Analysis + RF for these datasets -> adopt R scripts
-
-
-
-
-
-
-
-
-
