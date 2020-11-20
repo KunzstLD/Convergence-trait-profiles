@@ -88,9 +88,15 @@ subset_dfc <- test[test$KoppenClas == "Dfc", c("key_col", "ID_AQEM", "KoppenClas
 setDT(traits_EU)
 traits_EU[ID_AQEM %in% unique(subset_dfc$ID_AQEM), ]
 
-# How many regions do we have? 
-# Species can occur in multiple regions, how to deal with that?
-# lookup table ecoregion & key 
+#### NEXT STEPS
+# How many climate regions do we have? 
+# Subset of Trait databases to the respective climate regions
+# Species can occur in multiple regions -> First analysis without these species
+# Separate Cluster Analysis + RF for these datasets -> adopt R scripts
+
+
+
+
 
 
 
