@@ -1,14 +1,3 @@
-# libraries
-library(foreign)
-library(data.table)
-library(dplyr)
-
-# path to .shp/.dbf files
-# needs to be modified by user
-data_in <- file.path(getwd(),
-                     "Comparison_between_climatic_zones", 
-                     "Data")
-
 #### Load data ####
 
 # ecoregions classified to Köppen classifikation 
@@ -48,7 +37,7 @@ meaning_KG <- fread(
 #        on = c(ecoregion = "NAME")]
 # base way
 lookup <- base::merge(
-  x = lookup,
+  x = lookup_ER,
   y = ecoreg_kg[, c("KoppenClas", "SecKC", "NAME")],
   by.x = "ecoregion",
   by.y = "NAME",
@@ -92,13 +81,26 @@ ecoreg_data_lf <- base::merge(x = ecoreg_data_lf,
 # to the trait data
 test <- ecoreg_data_lf[!is.na(ecoreg_data_lf$ecoregion), ]
 
-# test <- reshape2::dcast(test, ID_AQEM + KoppenClas + SecKC ~ key_col)
-
 # check those who have a different first and second Köppen classification
-subset_dfc <- test[test$KoppenClas == "Dfc", c("key_col", "ID_AQEM", "KoppenClas")] 
+subset_dfc <- test[test$KoppenClas == "Dfc", c("key_col", 
+                                               "ID_AQEM",
+                                               "KoppenClas",
+                                               "SecKC")] 
+subset_bsk <- test[test$KoppenClas == "Bsk", c("key_col", 
+                                               "ID_AQEM",
+                                               "KoppenClas",
+                                               "SecKC")]
 
+# subset trait data
 setDT(traits_EU)
-traits_EU[ID_AQEM %in% unique(subset_dfc$ID_AQEM), ]
+traits_dfc <- traits_EU[ID_AQEM %in% unique(subset_dfc$ID_AQEM), ]
+traits_bsk <- traits_EU[ID_AQEM %in% unique(subset_bsk$ID_AQEM), ]
+
+# save in list
+saveRDS(
+  object = list("dfc" = traits_dfc, "bsk" = traits_bsk),
+  file = file.path(data_cache, "trait_subsets.rds")
+)
 
 #### NEXT STEPS
 # How many climate regions do we have? 
