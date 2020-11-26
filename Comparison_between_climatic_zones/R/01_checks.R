@@ -15,3 +15,5 @@ for(i in names(less_splvl)) {
 
 # Nr of taxa
 nr_of_taxa <- lapply(trait_subsets, function(y) y[, .N])
+
+# How complete is the trait data?
