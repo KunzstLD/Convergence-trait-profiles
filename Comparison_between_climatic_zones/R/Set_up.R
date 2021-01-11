@@ -5,6 +5,7 @@ library(dplyr)
 
 # cluster analysis
 library(cluster)
+library(vegan)
 
 # Path to .shp/.dbf/.csv etc. files
 data_in <- file.path(getwd(),
