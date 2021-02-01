@@ -1,0 +1,235 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Goal of this analysis:
+
+-   Step 1) Cluster taxa in trait databases according to their trait profiles to obtain groups of taxa with similar trait profiles (= trait profile groups)
+
+-   Step 2) Extract those traits that drive the clustering/are responsible for the grouping of the taxa in groups of similar trait profiles
+
+#### Two Analyses:
+
+-   Analysis A) Comparison between Europe, North America, Australia, and New Zealand.
+
+    -   Aggregation to family level required because of varying taxonomic resolutions between trait databases
+
+    -   Subset of grouping features/traits that are present in all databases (feeding mode, locomotion, respiration, body size, body form, reproduction/oviposition, voltinism)
+
+-   Analysis B) Comparison between major climatic regions of Europe and North America
+
+    -   Occurrence data for Europe based on Ecoregions
+
+    -   Occurrence data for North America from recently published CONUS trait database (Genus occurrences)
+
+    -   Aggregation of trait information to Genus level required
+
+### Data analysis and current challenges
+
+-   Data analysis:
+
+    -   For Step 1) Hierarchical cluster analysis:
+
+        -   Traits are expressed as affinities based on fuzzy coding
+
+        -   Normalised to a range between $[0-1]$
+
+        -   Distance matrix based on **Orloci's Chord distance** (= Euclidean distance after scaling vector length to 1)
+
+            -   Solves problems of:
+
+                -   Species having different total sums of trait affinities
+
+                -   Joint absences
+
+#### Small hypothetical example Orloci's Chord distance
+
+```{r}
+library(vegan)
+library(dplyr)
+
+# Example data
+ex_trait <- data.frame(
+  feed_shredder = c(0, NA, 0.7, 0),
+  feed_gatherer = c(0.1, NA, 0.3, 0),
+  feed_predator = c(0, NA, 0, 0),
+  feed_parasite = c(0, NA, 0, 0),
+  feed_filter = c(0, NA, 0, 0),
+  feed_herbivore = c(0.9, NA, 0, 1),
+  resp_teg = c(NA, 0.5, 0, 0),
+  resp_gil = c(NA, 0.5, 0, 0.5 ), 
+  
+  resp_pls_spi = c(NA, 0, 1, 0.5), 
+  
+  volt_semi = c(NA, 0, 0, 0),
+  volt_uni = c(NA, 0, 1, 1),
+  volt_bi_multi = c(NA, 1, 0, 0))
+
+# Orloci's chord distance
+dist_mat <- decostand(ex_trait, "norm", na.rm = TRUE) %>%
+  vegdist(., "euclidean", na.rm = TRUE) %>%
+  as.matrix()
+
+# Standardized to range [0, 1]
+dist_mat/sqrt(2)
+
+# convert NAs to zero
+ex_trait_zero <- vapply(ex_trait, function(y)
+  ifelse(is.na(y), 0, y), FUN.VALUE = c(
+    "1" = 0,
+    "2" = 0,
+    "3" = 0,
+    "4" = 0
+  ))
+
+# With zeros instead of NAs
+dist_mat_zero <- decostand(ex_trait_zero, "norm") %>%
+  vegdist(., "euclidean") %>%
+  as.matrix()
+
+dist_mat_zero/sqrt(2)
+```
+
+#### Data availability
+
+-   European taxa:
+
+```{r}
+
+# TODO only show output but hide code
+library(ggplot2)
+library(data.table)
+
+#### Functions used --------------------------------------------------------------------------------
+create_pattern_ind <- function(x, non_trait_cols) {
+  if (missing(non_trait_cols)) {
+    trait_names_pattern <- sub("\\_.*|\\..*", "", names(x)) %>%
+      unique() %>%
+      paste0("^", .)
+  } else{
+    pat <- paste0(non_trait_cols, collapse = "|")
+    # get trait names & create pattern for subset
+    trait_names_pattern <-
+      grep(pat, names(x), value = TRUE, invert = TRUE) %>%
+      sub("\\_.*|\\..*", "", .) %>%
+      unique() %>%
+      paste0("^", .)
+  }
+  trait_names_pattern
+}
+
+#### check for completeness of trait dataset ####
+completeness_trait_data <- function(x, non_trait_cols) {
+  trait_names_pattern <- create_pattern_ind(
+    x = x,
+    non_trait_cols = non_trait_cols
+  )
+
+  # test how complete trait sets are
+  output <- matrix(ncol = 2, nrow = length(trait_names_pattern))
+  for (i in seq_along(trait_names_pattern)) {
+    # vector containing either 0 (no NAs) or a number (> 0) meaning that all
+    # entries for this trait contained NA
+    vec <-
+      x[, apply(.SD, 1, function(y) {
+        base::sum(is.na(y))
+      }),
+      .SDcols = names(x) %like% trait_names_pattern[[i]]
+      ]
+
+    # How complete is the dataset for each individual trait?
+    output[i, ] <-
+      c(
+        (length(vec[vec == 0]) / nrow(x)) %>%
+          `*`(100) %>%
+          round(),
+        trait_names_pattern[[i]]
+      )
+  }
+  return(as.data.frame(output))
+}
+
+#### Load European trait data ----------------------------------------------------------------------
+# aggregated to genus level
+# classified according to different climatic regions
+trait_eu <- readRDS(
+  file.path(
+    getwd(),
+    "Comparison_between_climatic_zones",
+    "Cache",
+    "preproc_data_genus.rds"
+  )
+)
+
+# Data availability
+trait_coverage <- lapply(
+  trait_eu,
+  FUN = function(y) {
+    completeness_trait_data(
+      x = as.data.table(y)
+    )
+  }
+)
+
+
+trait_coverage <- rbindlist(trait_coverage, idcol = "Climateregion") 
+setnames(trait_coverage,
+  old = c("V1", "V2"),
+  new = c("Coverage", "Grouping_feature")
+)
+trait_coverage[, Coverage := as.numeric(Coverage)]
+
+# plot
+gf_descend <- trait_coverage[
+  order(Climateregion, -Coverage),
+  unique(Grouping_feature)
+]
+trait_coverage[, Grouping_feature := factor(Grouping_feature,
+  levels = gf_descend
+)]
+
+ggplot(trait_coverage) +
+  geom_pointrange(aes(
+    x = as.factor(Grouping_feature),
+    y = Coverage,
+    ymin = 0,
+    ymax = Coverage
+  )) +
+  facet_wrap(~Climateregion) +
+  labs(x = "Grouping feature", 
+       y = "% Taxa that contain trait information") +
+  scale_x_discrete(
+    labels = c(
+      "Feeding mode",
+      "Voltinism",
+      "Respiration",
+      "Locomotion",
+      "Oviposition",
+      "Size",
+      "Body form"
+    )
+  ) +
+  coord_flip() +
+  theme_bw() +
+  theme(
+    legend.position = "none",
+    axis.title = element_text(size = 12),
+    axis.text.x = element_text(size = 11),
+    axis.text.y = element_text(size = 11)
+  )
+```
+
+-   **Q1**: Should I not consider entries with NAs, leave them as they are, or substitute with Zeros? 
+If I leave them as they are taxa the distance measure will be calculated based on the amount of trait information available.
+If I substitute NAs with Zeros, this will change the distances when calculating the distance matrix (see example taxon 1 and 4). Replacing NAs with zeros seems to be wrong from an ecological standpoint, because this indicates that a particular taxon would not express certain trait/traits.
+
+
+
+
+
+
