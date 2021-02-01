@@ -10,14 +10,14 @@
 # load data
 data <- readRDS(file.path(
   data_cache,
-  paste0("preproc_data_", data_type, ".rds")
-))
+  "preproc_data_genus.rds")
+)
 
 # Hierarchical clustering
 hc_output <- list()
 
 set.seed(1234)
-for (i in names(data)) {
+for (i in c("temperate", "cold")) {
 
   # Create dist. matrix
   # for now use Orloci's Chord distance
@@ -36,7 +36,7 @@ for (i in names(data)) {
   gap <- clusGap(
     x = dist_mat,
     FUN = mycluster_hc,
-    K.max = 15,
+    K.max = 10,
     B = 500
   )
 

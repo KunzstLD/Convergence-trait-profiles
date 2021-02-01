@@ -6,48 +6,39 @@
 
 # read in data
 trait_subsets <- readRDS(file.path(data_cache, "trait_subsets.rds"))
-trait_subsets_uq <-
-  readRDS(file.path(data_cache, "trait_subsets_uq.rds"))
 
-# choose which data to process
-# for interactive use:
-if (interactive()) {
-  omitted <-
-    readline("Use full data? \n Otherwise only taxa specific to one climate region are used \n")
-
-  if (omitted == "T" | omitted == "TRUE" | omitted == "True") {
-    data_type <- "full"
-  } else {
-    data_type <- "unique"
-  }
-  rm(omitted)
-}
-# else choose data_type manually
-trait_data <- switch(data_type,
-  "full" = trait_subsets,
-  "unique" = trait_subsets_uq
-)
+# omit data we (for now) do not consider (development)
+trait_subsets[, c("dev_hemimetabol", "dev_holometabol") := NULL]
 
 # data preprocessing
 preproc_data <- list()
-
 for (region in c("arid", "temperate", "cold", "polar")) {
-  data <- trait_data[climateregion == region, ]
+  data <- trait_subsets[climateregion == region, ]
 
+  # ----- Trait Aggregation --------------------------------------------------
+  # columns not to consider for aggregation
+  non_trait_cols <- grep(
+      "ER[0-9]{1,}|species|genus|family|order|tax.*|climateregion|ID.*",
+      names(data),
+      value = TRUE
+    )
+
+  # trait aggregation to genus lvl (for comparability reasons with NOA data)
+  data <- direct_agg(
+    trait_data = data[!is.na(species), ],
+    non_trait_cols = non_trait_cols,
+    method = median,
+    taxon_lvl = "genus",
+    na.rm = TRUE
+  )
+
+  # ---- Data preparation for HC -----------------------------------------------
   # convert to data.frame -> data table does not support row.names
   setDF(data)
 
-  # throw out all columns except traits and taxa col!
-  rm <-
-    grep(
-      "ER[0-9]{1,}|species|genus|family|order|tax.*|climateregion",
-      names(data)
-    )
-  data <- data[, -rm]
-
   # add row.names
-  row.names(data) <- data$ID_AQEM
-  data$ID_AQEM <- NULL
+  row.names(data) <- data$genus
+  data$genus <- NULL
 
   # data with only two levels/integer/factor variables have to be numeric
   col_int_fac <-
@@ -56,10 +47,7 @@ for (region in c("arid", "temperate", "cold", "polar")) {
     }, data))
   data[, col_int_fac] <- apply(data[, col_int_fac], 2, as.double)
 
-  # rm development columns for now
-  data$dev_hemimetabol <- NULL
-  data$dev_holometabol <- NULL
-
+  # save to list
   preproc_data[[region]] <- data
 }
 
@@ -68,6 +56,6 @@ saveRDS(
   object = preproc_data,
   file = file.path(
     data_cache,
-    paste0("preproc_data_", data_type, ".rds")
+    paste0("preproc_data_", "genus", ".rds")
   )
 )
