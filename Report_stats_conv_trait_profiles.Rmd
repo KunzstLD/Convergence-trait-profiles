@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "Comparison trait profiles between continents and between climatic regions"
 output: html_document
 ---
 
@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 -   Step 2) Extract those traits that drive the clustering/are responsible for the grouping of the taxa in groups of similar trait profiles
 
-#### Two Analyses:
+-   Two analyses are planned:
 
 -   Analysis A) Comparison between Europe, North America, Australia, and New Zealand.
 
@@ -25,9 +25,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
     -   Occurrence data for Europe based on Ecoregions
 
-    -   Occurrence data for North America from recently published CONUS trait database (Genus occurrences)
+    -   Occurrence data for North America from recently published CONUS trait database. Occurences are described for genera.
 
-    -   Aggregation of trait information to Genus level required
+    -   Hence, aggregation of trait information to Genus level required
 
 ### Data analysis and current challenges
 
@@ -39,73 +39,92 @@ knitr::opts_chunk$set(echo = TRUE)
 
         -   Normalised to a range between $[0-1]$
 
-        -   Distance matrix based on **Orloci's Chord distance** (= Euclidean distance after scaling vector length to 1)
+        -   Distance matrix based on **Orloci's Chord distance** (= Euclidean distance after scaling vector length to 1) for fuzzy coded traits
 
-            -   Solves problems of:
+            -   Suitable for proprotional data
 
-                -   Species having different total sums of trait affinities
+            -   ?Species having different total sums of trait affinities
 
-                -   Joint absences
+            -   Joint absences
 
-#### Small hypothetical example Orloci's Chord distance
+        -   TODO: binary distances
 
-```{r}
-library(vegan)
-library(dplyr)
+### Data availability
 
-# Example data
-ex_trait <- data.frame(
-  feed_shredder = c(0, NA, 0.7, 0),
-  feed_gatherer = c(0.1, NA, 0.3, 0),
-  feed_predator = c(0, NA, 0, 0),
-  feed_parasite = c(0, NA, 0, 0),
-  feed_filter = c(0, NA, 0, 0),
-  feed_herbivore = c(0.9, NA, 0, 1),
-  resp_teg = c(NA, 0.5, 0, 0),
-  resp_gil = c(NA, 0.5, 0, 0.5 ), 
-  
-  resp_pls_spi = c(NA, 0, 1, 0.5), 
-  
-  volt_semi = c(NA, 0, 0, 0),
-  volt_uni = c(NA, 0, 1, 1),
-  volt_bi_multi = c(NA, 1, 0, 0))
+#### Information on climate regions in Europe
 
-# Orloci's chord distance
-dist_mat <- decostand(ex_trait, "norm", na.rm = TRUE) %>%
-  vegdist(., "euclidean", na.rm = TRUE) %>%
-  as.matrix()
+-   Climate regions for European invertebrates have been assigned according to their occurrence in different ecoregions (described in the freshwaterecology database, not all species are described). We used:
 
-# Standardized to range [0, 1]
-dist_mat/sqrt(2)
+    -   The Köppen-Geiger classification from: <https://www.nature.com/articles/sdata2018214>
 
-# convert NAs to zero
-ex_trait_zero <- vapply(ex_trait, function(y)
-  ifelse(is.na(y), 0, y), FUN.VALUE = c(
-    "1" = 0,
-    "2" = 0,
-    "3" = 0,
-    "4" = 0
-  ))
+    -   And ecoregions maps based on: <https://www.eea.europa.eu/data-and-maps/data/ecoregions-for-rivers-and-lakes>
 
-# With zeros instead of NAs
-dist_mat_zero <- decostand(ex_trait_zero, "norm") %>%
-  vegdist(., "euclidean") %>%
-  as.matrix()
+    -   Major climate regions used: polar, cold, temperate, arid
 
-dist_mat_zero/sqrt(2)
-```
+    -   Most taxa occur in multiple climate regions. I just used a subset of those taxa that occurred in one climateregion, and taxa were \> 50 % of the species described occur in one climateregion. After selection, taxa were aggregated to genus-lvl. This resulted in 109 genera distributed as follows: 45 cold, 1 polar, 63 temperate. The genus from the polar region was not considered.
 
-#### Data availability
+    -   (Some of the genera were classified into their dominant climateregion based on one or two species because more information was not available in the freshwaterecology database)
 
--   European taxa:
+```{r, echo = FALSE, results = "asis", message = FALSE}
 
-```{r}
-
-# TODO only show output but hide code
 library(ggplot2)
 library(data.table)
 
-#### Functions used --------------------------------------------------------------------------------
+#### Load original trait data with climate classification ------------
+
+# Read in data
+trait_subsets <- readRDS(
+  file.path(
+    getwd(),
+    "Comparison_between_climatic_zones",
+    "Cache",
+    "trait_subsets.rds"
+  )
+)
+
+# Omit data we (for now) do not consider (development)
+trait_subsets[, c("dev_hemimetabol", "dev_holometabol") := NULL]
+
+# Genera per climateregion
+genus_cr <- trait_subsets[, .(`Nr. of species` = .N), 
+                          by = .(genus, climateregion)]
+
+# Calculate rel. distribution according to major climatic regions
+genus_cr[, rel_distrib := `Nr. of species`/sum(`Nr. of species`), 
+         by = genus]
+
+# Genera only occurring in one climateregion: 37
+genera_onecr <- genus_cr[rel_distrib == 1, ]
+genera_onecr[trait_subsets,
+             `:=`(family = i.family,
+               order = i.order), 
+               on = "genus"]
+knitr::kable(genera_onecr, caption = "Genera that occur only in one climate region")
+
+# All genera used for subsequent analyses
+genera_cr_final <- genus_cr[rel_distrib > 0.5 & climateregion != "polar", ] 
+genera_cr_final[trait_subsets,
+                `:=`(family = i.family,
+                     order = i.order),
+                on = "genus"]
+
+knitr::kable(genera_cr_final, 
+             caption = "Genera used for subsequent analyses")
+```
+
+#### European trait data for cold and temperate climate regions
+
+Very little information is available for body size and body form traits. I would not consider these traits for the subsequent analysis. Generally, trait information is incomplete for this dataset, which poses the question how to handle missing values/NAs:
+
+-   **Q1**: Should I not consider entries with NAs, leave them as they are, or substitute with Zeros?
+
+    -   If I leave them as they are taxa the distance measure will be calculated based on the amount of available trait information. For example, if Genera A has information for three grouping features, all 3 are considered in the calculation of the distance matrix, even when compared to a Genera B which only has information for one grouping feature (standardisation of site vector lengths)
+
+    -   If I substitute NAs with Zeros, this will change the distances when calculating the distance matrix (see example Chord distance taxon 1 and 4). Replacing NAs with zeros seems to be wrong from an ecological standpoint, because this indicates that a particular taxon would not express certain traits.
+
+```{r, echo = FALSE}
+
+#### Functions used ----------------------------------------------------------------------
 create_pattern_ind <- function(x, non_trait_cols) {
   if (missing(non_trait_cols)) {
     trait_names_pattern <- sub("\\_.*|\\..*", "", names(x)) %>%
@@ -154,9 +173,9 @@ completeness_trait_data <- function(x, non_trait_cols) {
   return(as.data.frame(output))
 }
 
-#### Load European trait data ----------------------------------------------------------------------
+#### Load European trait data ----------------------------------------
 # aggregated to genus level
-# classified according to different climatic regions
+# and classified according to different climatic regions
 trait_eu <- readRDS(
   file.path(
     getwd(),
@@ -202,7 +221,7 @@ ggplot(trait_coverage) +
   )) +
   facet_wrap(~Climateregion) +
   labs(x = "Grouping feature", 
-       y = "% Taxa that contain trait information") +
+       y = "% Genera that contain trait information") +
   scale_x_discrete(
     labels = c(
       "Feeding mode",
@@ -224,12 +243,72 @@ ggplot(trait_coverage) +
   )
 ```
 
--   **Q1**: Should I not consider entries with NAs, leave them as they are, or substitute with Zeros? 
-If I leave them as they are taxa the distance measure will be calculated based on the amount of trait information available.
-If I substitute NAs with Zeros, this will change the distances when calculating the distance matrix (see example taxon 1 and 4). Replacing NAs with zeros seems to be wrong from an ecological standpoint, because this indicates that a particular taxon would not express certain trait/traits.
+After calculating the distance matrix for the climate region cold, a lot of NAs are introduced into the distance matrix. Removing these leads to very little data that is left for the cold climateregion (basically 8 genera)
+-> TODO: check how much information on family level is available that could be used?
+-> TODO: continue the analyses with the temperate dataset
+-> TODO: Which traits could be else included?
 
+### Statistical analysis
 
+#### Hierarchical cluster analysis
 
+#### Small hypothetical example Orloci's Chord distance
 
+```{r, message = FALSE}
+library(vegan)
+library(dplyr)
 
+# Example data
+ex_trait <- data.frame(
+  feed_shredder = c(0, NA, 0.7, 0),
+  feed_gatherer = c(0.1, NA, 0.3, 0),
+  feed_predator = c(0, NA, 0, 0),
+  feed_parasite = c(0, NA, 0, 0),
+  feed_filter = c(0, NA, 0, 0),
+  feed_herbivore = c(0.9, NA, 0, 1),
+  resp_teg = c(NA, 0.5, 0, 0),
+  resp_gil = c(NA, 0.5, 0, 0.5 ), 
+  
+  resp_pls_spi = c(NA, 0, 1, 0.5), 
+  
+  volt_semi = c(NA, 0, 0, 0),
+  volt_uni = c(NA, 0, 1, 1),
+  volt_bi_multi = c(NA, 1, 0, 0))
 
+# Orloci's chord distance
+dist_mat <- decostand(ex_trait, "norm", na.rm = TRUE) %>%
+  vegdist(., "euclidean", na.rm = TRUE) %>%
+  as.matrix()
+
+# Standardized to range [0, 1]
+dist_mat/sqrt(2)
+
+# convert NAs to zero
+ex_trait_zero <- vapply(ex_trait, function(y)
+  ifelse(is.na(y), 0, y), FUN.VALUE = c(
+    "1" = 0,
+    "2" = 0,
+    "3" = 0,
+    "4" = 0
+  ))
+
+# With zeros instead of NAs
+
+dist_mat_zero <- decostand(ex_trait_zero, "norm") %>%
+  vegdist(., "euclidean") %>%
+  as.matrix()
+
+dist_mat_zero/sqrt(2)
+```
+
+-   TODO: Influence different cluster algorithms
+
+-   TODO: Optimal number of groups
+
+-   TODO: How much do the variables contribute to the global distance?
+
+-   TODO: RF VI
+
+-   TODO: RF with interactions (Kumbier et al.)
+
+-   TODO: New section preliminary results for comparison across continents
