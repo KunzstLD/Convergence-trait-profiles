@@ -29,7 +29,7 @@ dist_mat <- decostand(ex_trait, "norm", na.rm = TRUE) %>%
   vegdist(., "euclidean", na.rm = TRUE) %>%
   as.matrix()
 
-# Example calculation by hand
+# Example calculation by hand Orloci chord distance
 sqrt(
   (0/sqrt(0.1^2+0.9^2)-0/sqrt(1^2+0.5^2+0.5^2+1^2))^2 +
   (0.1/sqrt(0.1^2+0.9^2)-0/sqrt(1^2+0.5^2+0.5^2+1^2))^2 +
@@ -49,13 +49,4 @@ dist_mat_zero <- decostand(ex_trait_zero, "norm", na.rm = TRUE) %>%
 
 dist_mat_zero/sqrt(2)
 
-# Q: How can I figure out which variable contributes the the global distance?
-
-
-
-
-
-
-
-
-
+# Q: How can I figure out which variable contributes to the global distance?

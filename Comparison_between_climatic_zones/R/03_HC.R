@@ -3,9 +3,7 @@
 # for fuzzy coded traits
 
 # TODO: Analyse per Order?
-# TODO: Just work with vegdist(decostand(...)) atm
-# TODO: create custom dist function for fuzzy coded and binary variables!
-
+# TODO: create custom dist function for fuzzy coded and binary variables?
 
 # load data
 data <- readRDS(file.path(
@@ -25,6 +23,9 @@ for (i in c("temperate", "cold")) {
     vegdist(., "euclidean", na.rm = TRUE) %>%
     as.matrix()
 
+  # standardise distances to [0,1]
+  dist_mat <- dist_mat/sqrt(2)
+
   # Some NA values, need to be exclude for some species
   # for which only few trait information is available
   orig_dist_mat <- dist_mat
@@ -36,7 +37,7 @@ for (i in c("temperate", "cold")) {
   gap <- clusGap(
     x = dist_mat,
     FUN = mycluster_hc,
-    K.max = 10,
+    K.max = 3,
     B = 500
   )
 

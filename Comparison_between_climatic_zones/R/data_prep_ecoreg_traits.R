@@ -16,7 +16,8 @@ ecoreg_kg[KoppenClas == "Bsk", KoppenClas := "BSk"]
 # loaded as .rds (already in data.table format)
 # traits_EU <- readRDS(file.path(data_in, "Trait_freshecol_2020_pp_harmonized_ecoregions.rds"))
 # loaded as .csv
-traits_EU <- fread(file.path(data_in, "Trait_freshecol_2020_pp_harmonized_ecoregions.csv"))
+traits_EU <- fread(file.path(data_in, 
+"Trait_freshecol_2020_pp_harmonized_ecoregions.csv"))
 
 # - lookup table for ecoregions: 
 lookup_ER <- readRDS(file.path(
