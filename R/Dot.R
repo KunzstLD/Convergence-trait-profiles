@@ -1,6 +1,5 @@
 library(DiagrammeR)
 
-
 grViz("digraph{
 
       graph[rankdir = LR]

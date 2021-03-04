@@ -3,8 +3,15 @@
 # for fuzzy coded traits
 # TODO: Analyse per Order
 # TODO: Use Ade4!
-# ________________________________________________________
 
+# From Legendre:
+# hierarchical: 
+# "inferior-ranking clusters become members of larger, higher-ranking clusters"
+# vs. non-hierarchical: 
+#"They produce a single partition that optimizes within-group homogeneity,
+# instead of a hierarchical series of partitions optimizing the hierarchical
+# attribution of objects to clusters"
+# ________________________________________________________
 traits_ww <- readRDS(file.path(
   data_cache,
   "preproc_traits.rds")
@@ -57,6 +64,9 @@ for (region in c("AUS", "EU", "NOA", "NZ")) {
   )
 }
 
+plot(hc_output$NZ$gap_statistic)
+hc_output$NZ$optimal_nog
+
 # TODO: Optimal number of groups? Gap statstic, works also well when data
 # fall into "one cluster" (i.e. indication that there is no cluster structure
 # if this is the case)
@@ -72,6 +82,11 @@ for (region in c("AUS", "EU", "NOA", "NZ")) {
 # TODO: test the influence of ward.D, ward.D2 and
 # other, see also Everitt and
 # https://cran.r-project.org/web/packages/dendextend/vignettes/Cluster_Analysis.html#animals---attributes-of-animals
+# From Legendre:
+# "At each clustering step, Ward’s method finds the pair of objects or clusters whose fusion
+# increases as little as possible the sum, over all groups formed so far, of the squared
+# distances between objects and cluster centroids; that sum is the total within-group
+# sum-of-squares"
 
 saveRDS(
   object = hc_output,
