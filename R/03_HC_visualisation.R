@@ -104,7 +104,7 @@ for (i in names(hc_output_ww)) {
 # save dendrogram plots
 for (i in names(dendrograms)) {
   png(
-    file = file.path(data_out,
+    file = file.path(data_paper,
                      "Graphs",
                      paste0(
                        "Dendrogram_", i, ".png"
@@ -181,10 +181,10 @@ grouping_feature_names <- c(
 )
 
 # plot
-fun_heatmap(data = trait_AUS_lf)+
+fun_heatmap_single_cont(data = trait_AUS_lf)+
   ggtitle("TPGs AUS")
 ggplot2::ggsave(
-  filename = file.path(data_out,
+  filename = file.path(data_paper,
                        "Graphs", 
                        "Heatmap_tpgs_AUS.png"),
   width = 35,
@@ -246,10 +246,10 @@ grouping_feature_names <- c(
 )
 
 # plot
-fun_heatmap(data = trait_EU_lf) +
+fun_heatmap_single_cont(data = trait_EU_lf) +
   ggtitle("TPGs EU")
 ggplot2::ggsave(
-  filename = file.path(data_out,
+  filename = file.path(data_paper,
                        "Graphs", 
                        "Heatmap_tpgs_EU.png"),
   width = 35,
@@ -311,9 +311,10 @@ grouping_feature_names <- c(
 )
 
 # plot
-fun_heatmap(data = trait_NOA_lf)
+fun_heatmap_single_cont(data = trait_NOA_lf) +
+  ggtitle("TPGs NOA")
 ggplot2::ggsave(
-  filename = file.path(data_out,
+  filename = file.path(data_paper,
                        "Graphs", 
                        "Heatmap_tpgs_NOA.png"),
   width = 35,
@@ -375,9 +376,10 @@ grouping_feature_names <- c(
 )
 
 # plot
-fun_heatmap(data = trait_NZ_lf)
+fun_heatmap_single_cont(data = trait_NZ_lf) +
+  ggtitle("TPGs NZ")
 ggplot2::ggsave(
-  filename = file.path(data_out,
+  filename = file.path(data_paper,
                        "Graphs", 
                        "Heatmap_tpgs_NZ.png"),
   width = 35,

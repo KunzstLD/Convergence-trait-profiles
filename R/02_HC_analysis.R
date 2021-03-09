@@ -26,6 +26,8 @@ for (region in c("AUS", "EU", "NOA", "NZ")) {
 
   # Create dist. matrxi using Overlap index Manly ---------------------
   # TODO (check what this approach does)
+  # if scann == FALSE, than method 2 from dist.prop is used (see function dist.ktab)
+  # which is the Overlap index Manly
   dist_mat <- dist.ktab(data, type = "F") %>%
     as.matrix(.)
 
@@ -63,9 +65,6 @@ for (region in c("AUS", "EU", "NOA", "NZ")) {
     "optimal_nog" = optimal_nog
   )
 }
-
-plot(hc_output$NZ$gap_statistic)
-hc_output$NZ$optimal_nog
 
 # TODO: Optimal number of groups? Gap statstic, works also well when data
 # fall into "one cluster" (i.e. indication that there is no cluster structure

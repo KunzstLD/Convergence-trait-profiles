@@ -188,9 +188,9 @@ fun_dendrog_pl <- function(hc,
 }
 
 # Heatmap plot -----------------------------------------------------------
-# Create heatmap with ggplot for TPGs and Grouping features
+# Create heatmap with ggplot for TPGs and Grouping features for each continent
 # Columns of data are hardcoded, maybe change in the future
-fun_heatmap <- function(data) {
+fun_heatmap_single_cont <- function(data) {
   ggplot(data, aes(x = trait_label,
                    y = family,
                    fill = affinity)) +
@@ -225,3 +225,34 @@ fun_heatmap <- function(data) {
       panel.grid = element_blank()
     )
 }
+
+# Plotting function for tpg that occur across the tested continents
+fun_heatmap_tpg <- function(data) {
+  ggplot(data, aes(x = trait,
+                   y = family,
+                   fill = affinity)) +
+    geom_tile() +
+    facet_grid(continent ~ .,
+               scales = "free",
+               space = "free") +
+    scale_fill_gradient(name = "Trait affinity",
+                        low = "#FFFFF1",
+                        high = "#012345") +
+    labs(x = "Trait", y = "Family") +
+    theme_bw() +
+    theme(
+      axis.title = element_text(size = 12),
+      axis.text.x = element_text(family = "Roboto Mono",
+                                 size = 11),
+      axis.text.y = element_text(family = "Roboto Mono",
+                                 size = 11),
+      legend.title = element_text(family = "Roboto Mono",
+                                  size = 12),
+      legend.text = element_text(family = "Roboto Mono",
+                                 size = 11),
+      strip.text = element_text(family = "Roboto Mono",
+                                size = 11),
+      panel.grid = element_blank()
+    )
+}
+

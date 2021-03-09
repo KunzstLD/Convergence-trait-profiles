@@ -10,17 +10,24 @@ data_cache <- "./Cache"
 # Location for output
 data_out <- "./Output"
 
+# Location for paper related output 
+data_paper <- "./Paper"
+
+
 # ---- Libraries ---------------------------------------------------------
 
-# data cleaning and data manipulation
+# Data cleaning and data manipulation
 library(dplyr)
 library(data.table)
 library(Hmisc)
 library(zeallot)
 
-# plotting
+# Plotting
 library(ggplot2)
 library(dendextend) # for handling & plotting dendrograms
+
+# Table outputs
+library(knitr)
 
 # Random Forest
 library(rsample)  # data splitting

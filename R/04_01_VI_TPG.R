@@ -98,3 +98,9 @@ rf_vimp <- data.table(
   "database" = rep(c("AUS", "EU", "NOA", "NZ"), each = 5)
   
 )
+
+kable(rf_vimp[, .(database, five_most_important_traits, run)], 
+      format = "markdown",
+      caption = "Five most important traits to distinguish TPGs for each continent. After the 
+      initial run the highest ranking variable has been removed and a random forest has been fitted 
+      again. This procedure has been repeated 4 times.")
