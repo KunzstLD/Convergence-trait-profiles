@@ -243,7 +243,9 @@ fun_heatmap_tpg <- function(data) {
     theme(
       axis.title = element_text(size = 12),
       axis.text.x = element_text(family = "Roboto Mono",
-                                 size = 11),
+                                 size = 11,
+                                 angle = 45, 
+                                 hjust = 1),
       axis.text.y = element_text(family = "Roboto Mono",
                                  size = 11),
       legend.title = element_text(family = "Roboto Mono",
@@ -255,4 +257,46 @@ fun_heatmap_tpg <- function(data) {
       panel.grid = element_blank()
     )
 }
+
+# Helper function to plot boruta results --------------------------------------
+
+# Does require data.table
+# Takes as input a result from attStats() on an object created by boruta()
+fun_boruta_results <- function(data) {
+  data$traits <- rownames(data)
+  setDT(data)
+  data[, traits := reorder(traits, meanImp)]
+  data[, decision := factor(decision, levels = c("Confirmed", "Tentative", "Rejected"))]
+  
+  ggplot(data,
+         aes(
+           x = as.factor(traits),
+           y = meanImp,
+           color = decision
+         )) +
+    geom_point(size = 2.5) +
+    scale_color_brewer(palette = "Dark2") + 
+    labs(x = "Traits", y = "Mean permutation importance score", 
+         color = "Decision") +
+    theme_bw() +
+    theme(
+      axis.title = element_text(size = 12),
+      axis.text.x = element_text(
+        family = "Roboto Mono",
+        size = 11,
+        angle = 45,
+        hjust = 1
+      ),
+      axis.text.y = element_text(family = "Roboto Mono",
+                                 size = 11),
+      legend.title = element_text(family = "Roboto Mono",
+                                  size = 12),
+      legend.text = element_text(family = "Roboto Mono",
+                                 size = 11),
+      strip.text = element_text(family = "Roboto Mono",
+                                size = 11),
+      panel.grid = element_blank()
+    )
+}
+
 

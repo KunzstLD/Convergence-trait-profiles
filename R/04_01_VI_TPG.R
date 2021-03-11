@@ -96,11 +96,51 @@ rf_vimp <- data.table(
   ),
   times = 4),
   "database" = rep(c("AUS", "EU", "NOA", "NZ"), each = 5)
-  
 )
 
+# Output table most important traits
 kable(rf_vimp[, .(database, five_most_important_traits, run)], 
       format = "markdown",
       caption = "Five most important traits to distinguish TPGs for each continent. After the 
       initial run the highest ranking variable has been removed and a random forest has been fitted 
       again. This procedure has been repeated 4 times.")
+
+# Test/train error
+kable(rf_vimp[, .(database, test_error, train_error, run)], 
+      format = "markdown",
+      caption = "Training error and test error for the fitted random forest on the TPG.",
+      digits = 2)
+
+
+# Variable selection with wrapper algorithm Boruta
+res <- list()
+for (region in c("AUS", "EU", "NOA", "NZ")) {
+  # Preprocessing
+  data <- copy(trait_dat[[region]])
+  data <- data[, -c("family", "order")]
+  data[, group := factor(as.character(group))]
+  
+  res[[region]] <- Boruta(group ~ .,
+                          data = data,
+                          maxRuns = 100)
+}
+
+# TODO: show values of all iterations
+c(boruta_aus, boruta_eu, boruta_noa, boruta_nz) %<-% lapply(res, attStats)
+
+boruta_res <- list(
+  "AUS" = boruta_aus,
+  "EU" = boruta_eu,
+  "NOA" = boruta_noa,
+  "NZ" = boruta_nz
+)
+
+for(region in names(boruta_res)) {
+  plot <- fun_boruta_results(data = boruta_res[[region]])
+  
+  ggplot2::ggsave(filename = file.path(
+    data_paper,
+    "Graphs",
+    paste0("Variable_selec_boruta_", region, ".png")
+  ))
+}

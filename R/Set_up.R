@@ -25,6 +25,7 @@ library(zeallot)
 # Plotting
 library(ggplot2)
 library(dendextend) # for handling & plotting dendrograms
+library(patchwork)
 
 # Table outputs
 library(knitr)
@@ -35,6 +36,9 @@ library(ranger)   # a fast c++ implementation of the random forest algorithm
 library(vip)      # visualize feature importance
 library(pdp)      # visualize feature effects
 library(caret)
+
+# Variable importance
+library(Boruta)
 
 # Cluster Analysis
 library(cluster)

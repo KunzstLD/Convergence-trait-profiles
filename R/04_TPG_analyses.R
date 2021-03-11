@@ -158,8 +158,8 @@ tpg_acr_cont[, continent := factor(continent,
                                               "NZ_6"))]
 
 # Heatmap
-tpg1_plot <- fun_heatmap_tpg(data = tpg_acr_cont)
-tpg1_plot +
+conv_gr1 <- fun_heatmap_tpg(data = tpg_acr_cont)
+conv_gr1 <- tpg1_plot +
   annotate(
     xmin = 0.5,
     xmax = 4.5,
@@ -169,8 +169,38 @@ tpg1_plot +
     alpha = 0.1,
     color = "darkorange",
     size = 2.1
-  ) # +
+  ) 
+  # +
   # ggtitle("TPG A that occurred in all continents")
+
+# Add order information
+tpg_acr_cont_uq <- unique(tpg_acr_cont, by = c("family","continent"))
+tpg_acr_cont_uq[, prop_order := .N/nr_families, by = .(continent, order)]
+
+orders_conv_gr1 <- ggplot(tpg_acr_cont_uq, aes(x = as.factor(order),
+                                               y = prop_order * 100)) +
+  geom_pointrange(aes(ymin = 0,
+                      ymax = prop_order * 100)) +
+  facet_grid(continent ~ .) +
+  labs(x = "Order", y = "Percentage per TPG") +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 12),
+    axis.text.x = element_text(family = "Roboto Mono",
+                               size = 11, 
+                               angle = 45, 
+                               hjust = 1),
+    axis.text.y = element_text(family = "Roboto Mono",
+                               size = 11),
+    legend.title = element_text(family = "Roboto Mono",
+                                size = 12),
+    legend.text = element_text(family = "Roboto Mono",
+                               size = 11),
+    strip.text = element_text(family = "Roboto Mono",
+                              size = 11),
+    panel.grid = element_blank()
+  )
+conv_gr1 + orders_conv_gr1 + plot_annotation(tag_levels = "I")
 ggplot2::ggsave(
   filename = file.path(data_paper,
                        "Graphs", 
@@ -220,7 +250,6 @@ tpg_acr_cont_2[, trait := factor(
     "size_small"
   )
 )]
-tpg_acr_cont_2$continent %>% unique
 tpg_acr_cont_2[, continent := factor(continent,
                                      levels = c("AUS_4",
                                                 "EU_2",
@@ -230,8 +259,8 @@ tpg_acr_cont_2[, continent := factor(continent,
                                                 "NZ_6"))]
 
 # NZ group 6; AUS group 4 also occur in TPG1 
-tpg2_plot <- fun_heatmap_tpg(data = tpg_acr_cont_2)
-tpg2_plot +
+conv_gr2 <- fun_heatmap_tpg(data = tpg_acr_cont_2)
+conv_gr2 <- conv_gr2 +
   annotate(
     xmin = 0.5,
     xmax = 3.5,
@@ -242,7 +271,36 @@ tpg2_plot +
     color = "darkorange",
     size = 2.1
   ) # +
-  # ggtitle("TPG B that occurred in all continents")
+# ggtitle("TPG B that occurred in all continents")
+
+# Add order information
+tpg_acr_cont_uq2 <- unique(tpg_acr_cont_2, by = c("family","continent"))
+tpg_acr_cont_uq2[, prop_order := .N/nr_families, by = .(continent, order)]
+
+orders_conv_gr2 <- ggplot(tpg_acr_cont_uq2, aes(x = as.factor(order),
+                                               y = prop_order * 100)) +
+  geom_pointrange(aes(ymin = 0,
+                      ymax = prop_order * 100)) +
+  facet_grid(continent ~ .) +
+  labs(x = "Order", y = "Percentage per TPG") +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 12),
+    axis.text.x = element_text(family = "Roboto Mono",
+                               size = 11, 
+                               angle = 45, 
+                               hjust = 1),
+    axis.text.y = element_text(family = "Roboto Mono",
+                               size = 11),
+    legend.title = element_text(family = "Roboto Mono",
+                                size = 12),
+    legend.text = element_text(family = "Roboto Mono",
+                               size = 11),
+    strip.text = element_text(family = "Roboto Mono",
+                              size = 11),
+    panel.grid = element_blank()
+  )
+conv_gr2 + orders_conv_gr2 + plot_annotation(tag_levels = "I")
 ggplot2::ggsave(
   filename = file.path(data_paper,
                        "Graphs", 
@@ -297,8 +355,8 @@ tpg_acr_cont_3[, continent := factor(continent,
                                                 "NZ_9"))]
 
 # NZ group 6; AUS group 4 also occur in TPG1 
-tpg3_plot <- fun_heatmap_tpg(data = tpg_acr_cont_3)
-tpg3_plot +
+conv_gr3 <- fun_heatmap_tpg(data = tpg_acr_cont_3)
+conv_gr3 <- conv_gr3 +
   annotate(
     xmin = 0.5,
     xmax = 3.5,
@@ -309,26 +367,14 @@ tpg3_plot +
     color = "darkorange",
     size = 2.1
   ) # +
-  # ggtitle("TPG C that occurred in all continents")
-ggplot2::ggsave(
-  filename = file.path(data_paper,
-                       "Graphs", 
-                       "Heatmap_TPG3_across_all_continents.png"),
-  width = 35,
-  height = 31,
-  units = "cm"
-)
+# ggtitle("TPG C that occurred in all continents")
 
-# TODO: Order information for the converged groups
-# Barchart for information on orders
-tpg_acr_cont[continent == "NOA", ] %>% 
-  .[!duplicated(family), .N, by = order]
+# Add order information
+tpg_acr_cont_uq3 <- unique(tpg_acr_cont_3, by = c("family","continent"))
+tpg_acr_cont_uq3[, prop_order := .N/nr_families, by = .(continent, order)]
 
-tpg_acr_cont_uq <- unique(tpg_acr_cont, by = c("family","continent"))
-tpg_acr_cont_uq[, prop_order := .N/nr_families, by = .(continent, order)]
-
-ggplot(tpg_acr_cont_uq, aes(x = as.factor(order),
-                            y = prop_order * 100)) +
+orders_conv_gr3 <- ggplot(tpg_acr_cont_uq3, aes(x = as.factor(order),
+                                                y = prop_order * 100)) +
   geom_pointrange(aes(ymin = 0,
                       ymax = prop_order * 100)) +
   facet_grid(continent ~ .) +
@@ -336,10 +382,10 @@ ggplot(tpg_acr_cont_uq, aes(x = as.factor(order),
   theme_bw() +
   theme(
     axis.title = element_text(size = 12),
-    axis.text.x = element_text(
-      family = "Roboto Mono",
-      size = 11
-    ),
+    axis.text.x = element_text(family = "Roboto Mono",
+                               size = 11, 
+                               angle = 45, 
+                               hjust = 1),
     axis.text.y = element_text(family = "Roboto Mono",
                                size = 11),
     legend.title = element_text(family = "Roboto Mono",
@@ -350,6 +396,15 @@ ggplot(tpg_acr_cont_uq, aes(x = as.factor(order),
                               size = 11),
     panel.grid = element_blank()
   )
+conv_gr3 + orders_conv_gr3 + plot_annotation(tag_levels = "I")
+ggplot2::ggsave(
+  filename = file.path(data_paper,
+                       "Graphs", 
+                       "Heatmap_TPG3_across_all_continents.png"),
+  width = 35,
+  height = 31,
+  units = "cm"
+)
 
 # B) In terms of grouping features contributing to the global distance
 # What does the value exactly mean?
