@@ -126,8 +126,18 @@ trait_profile_groups <- list()
 for(i in names(hc_output_ww)) {
   trait_profile_groups[[i]] <-
     data.table(
-      family = names(cutree(dendrograms[[i]], k = hc_output_ww[[i]]$optimal_nog)),
-      group = cutree(dendrograms[[i]], k = hc_output_ww[[i]]$optimal_nog)
+      family = names(
+        cutree(
+          dendrograms[[i]],
+          k = hc_output_ww[[i]]$optimal_nog,
+          order_clusters_as_data = FALSE
+        )
+      ),
+      group = cutree(
+        dendrograms[[i]],
+        k = hc_output_ww[[i]]$optimal_nog,
+        order_clusters_as_data = FALSE
+      )
     )
 }
 
@@ -188,7 +198,7 @@ ggplot2::ggsave(
                        "Graphs", 
                        "Heatmap_tpgs_AUS.png"),
   width = 35,
-  height = 31,
+  height = 33,
   units = "cm"
 )
 
@@ -253,7 +263,7 @@ ggplot2::ggsave(
                        "Graphs", 
                        "Heatmap_tpgs_EU.png"),
   width = 35,
-  height = 31,
+  height = 33,
   units = "cm"
 )
 
@@ -318,7 +328,7 @@ ggplot2::ggsave(
                        "Graphs", 
                        "Heatmap_tpgs_NOA.png"),
   width = 35,
-  height = 31,
+  height = 33,
   units = "cm"
 )
 
@@ -383,7 +393,7 @@ ggplot2::ggsave(
                        "Graphs", 
                        "Heatmap_tpgs_NZ.png"),
   width = 35,
-  height = 31,
+  height = 33,
   units = "cm"
 )
 

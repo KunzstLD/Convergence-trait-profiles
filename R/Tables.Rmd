@@ -1,0 +1,68 @@
+---
+title: "Tables convergence trait profiles"
+output: html_document
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Paper/Tables/") })
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo = FALSE}
+# Set up
+library(data.table)
+library(reactable)
+```
+
+
+## Table 2 
+
+Contribution of grouping features to the global distances.
+
+```{r, echo = FALSE}
+# Load data global distances
+global_dist <- readRDS("/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/global_dist.rds")
+global_dist <- rbindlist(global_dist, idcol = "continent")
+
+reactable(global_dist[, .(continent, grouping_feature, global_dist = round(`global distance`, digits = 2))],
+          columns = list(continent = colDef(name = "Continent"), 
+                         grouping_feature = colDef(name = "Grouping feature"),
+                         global_dist = colDef(name = "Global distance",
+                                              align = "center")), 
+          filterable = TRUE,
+          highlight = TRUE)
+```
+
+## Table 3
+
+Five most important traits to distinguish TPGs for each continent. After the initial run the highest
+ranking variable has been removed and a random forest has been fitted again.
+This procedure has been repeated 4 times. Training error and test error for the fitted random 
+forest are shown in the last two columns.
+
+```{r, echo = FALSE}
+rf_vimp <- readRDS("/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/rf_vimp.rds")
+reactable(
+  rf_vimp[, .(
+    continent,
+    five_most_important_traits,
+    run,
+    test_error = round(test_error, digits = 2),
+    train_error = round(train_error, digits = 2)
+  )],
+  columns = list(
+    continent = colDef(name = "Continent",
+                       width = 120),
+    five_most_important_traits = colDef(name = "Five most important traits",
+                                        width = 300),
+    run = colDef(name = "Run",
+                 width = 250),
+    test_error = colDef(name = "Test error"),
+    train_error = colDef(name = "Train error")
+  ), 
+  filterable = TRUE,
+  highlight = TRUE
+)
+```
+

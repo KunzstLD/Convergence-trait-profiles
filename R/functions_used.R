@@ -207,21 +207,23 @@ fun_heatmap_single_cont <- function(data) {
     labs(x = "Trait", y = "Family") +
     theme_bw() +
     theme(
-      axis.title = element_text(size = 12),
+      axis.title = element_text(size = 16),
       axis.text.x = element_text(
         family = "Roboto Mono",
-        size = 11,
-        angle = 60,
+        size = 14,
+        angle = 45,
         hjust = 1
       ),
       axis.text.y = element_text(family = "Roboto Mono",
-                                 size = 11),
+                                 size = 14),
       legend.title = element_text(family = "Roboto Mono",
-                                  size = 12),
+                                  size = 16),
       legend.text = element_text(family = "Roboto Mono",
-                                 size = 11),
+                                 size = 14),
       strip.text = element_text(family = "Roboto Mono",
-                                size = 11),
+                                size = 14),
+      plot.title = element_text(family = "Roboto Mono", 
+                                size = 16),
       panel.grid = element_blank()
     )
 }
@@ -241,19 +243,23 @@ fun_heatmap_tpg <- function(data) {
     labs(x = "Trait", y = "Family") +
     theme_bw() +
     theme(
-      axis.title = element_text(size = 12),
-      axis.text.x = element_text(family = "Roboto Mono",
-                                 size = 11,
-                                 angle = 45, 
-                                 hjust = 1),
+      axis.title = element_text(size = 16),
+      axis.text.x = element_text(
+        family = "Roboto Mono",
+        size = 14,
+        angle = 45,
+        hjust = 1
+      ),
       axis.text.y = element_text(family = "Roboto Mono",
-                                 size = 11),
+                                 size = 14),
       legend.title = element_text(family = "Roboto Mono",
-                                  size = 12),
+                                  size = 16),
       legend.text = element_text(family = "Roboto Mono",
-                                 size = 11),
+                                 size = 14),
       strip.text = element_text(family = "Roboto Mono",
-                                size = 11),
+                                size = 14),
+      plot.title = element_text(family = "Roboto Mono", 
+                                size = 16),
       panel.grid = element_blank()
     )
 }
@@ -280,21 +286,23 @@ fun_boruta_results <- function(data) {
          color = "Decision") +
     theme_bw() +
     theme(
-      axis.title = element_text(size = 12),
+      axis.title = element_text(size = 16),
       axis.text.x = element_text(
         family = "Roboto Mono",
-        size = 11,
+        size = 14,
         angle = 45,
         hjust = 1
       ),
       axis.text.y = element_text(family = "Roboto Mono",
-                                 size = 11),
+                                 size = 14),
       legend.title = element_text(family = "Roboto Mono",
-                                  size = 12),
+                                  size = 16),
       legend.text = element_text(family = "Roboto Mono",
-                                 size = 11),
+                                 size = 14),
       strip.text = element_text(family = "Roboto Mono",
-                                size = 11),
+                                size = 14),
+      plot.title = element_text(family = "Roboto Mono", 
+                                size = 16),
       panel.grid = element_blank()
     )
 }

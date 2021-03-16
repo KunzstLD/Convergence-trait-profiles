@@ -129,10 +129,10 @@ tpg1_traits <- c(
 )
 tpg_acr_cont <-
   trait_CONT[trait %in% tpg1_traits & (
-    (continent == "AUS" & group %in% c(3, 4)) |
-      (continent == "EU" & group == 8) |
-      (continent == "NOA" & group == 3) |
-      (continent == "NZ" & group == 6)
+    (continent == "AUS" & group %in% c(1, 2)) |
+      (continent == "EU" & group == 7) |
+      (continent == "NOA" & group == 4) |
+      (continent == "NZ" & group == 8)
   ),]
 tpg_acr_cont[, continent := paste0(continent, "_", group)]
 
@@ -151,15 +151,15 @@ tpg_acr_cont[, trait := factor(
 )]
 tpg_acr_cont$continent %>% unique
 tpg_acr_cont[, continent := factor(continent,
-                                   levels = c("AUS_3",
-                                              "AUS_4",
-                                              "EU_8",
-                                              "NOA_3",
-                                              "NZ_6"))]
+                                   levels = c("AUS_1",
+                                              "AUS_2",
+                                              "EU_7",
+                                              "NOA_4",
+                                              "NZ_8"))]
 
 # Heatmap
 conv_gr1 <- fun_heatmap_tpg(data = tpg_acr_cont)
-conv_gr1 <- tpg1_plot +
+conv_gr1 <- conv_gr1 +
   annotate(
     xmin = 0.5,
     xmax = 4.5,
@@ -185,19 +185,21 @@ orders_conv_gr1 <- ggplot(tpg_acr_cont_uq, aes(x = as.factor(order),
   labs(x = "Order", y = "Percentage per TPG") +
   theme_bw() +
   theme(
-    axis.title = element_text(size = 12),
-    axis.text.x = element_text(family = "Roboto Mono",
-                               size = 11, 
-                               angle = 45, 
-                               hjust = 1),
+    axis.title = element_text(size = 16),
+    axis.text.x = element_text(
+      family = "Roboto Mono",
+      size = 14,
+      angle = 45,
+      hjust = 1
+    ),
     axis.text.y = element_text(family = "Roboto Mono",
-                               size = 11),
+                               size = 14),
     legend.title = element_text(family = "Roboto Mono",
-                                size = 12),
+                                size = 16),
     legend.text = element_text(family = "Roboto Mono",
-                               size = 11),
+                               size = 14),
     strip.text = element_text(family = "Roboto Mono",
-                              size = 11),
+                              size = 14),
     panel.grid = element_blank()
   )
 conv_gr1 + orders_conv_gr1 + plot_annotation(tag_levels = "I")
@@ -227,10 +229,10 @@ tpg2_traits <- c(
 )
 tpg_acr_cont_2 <-
   trait_CONT[trait %in% tpg2_traits & (
-    (continent == "AUS" & group == 4) |
-      (continent == "EU" & group %in% c(2, 5, 7)) |
-      (continent == "NOA" & group == 5) |
-      (continent == "NZ" & group == 6)
+    (continent == "AUS" & group == 1) |
+      (continent == "EU" & group %in% c(6, 8, 9)) |
+      (continent == "NOA" & group == 3) |
+      (continent == "NZ" & group == 8)
   ), ]
 tpg_acr_cont_2[, continent := paste0(continent, "_", group)]
 
@@ -251,12 +253,12 @@ tpg_acr_cont_2[, trait := factor(
   )
 )]
 tpg_acr_cont_2[, continent := factor(continent,
-                                     levels = c("AUS_4",
-                                                "EU_2",
-                                                "EU_5",
-                                                "EU_7",
-                                                "NOA_5",
-                                                "NZ_6"))]
+                                     levels = c("AUS_1",
+                                                "EU_6",
+                                                "EU_8",
+                                                "EU_9",
+                                                "NOA_3",
+                                                "NZ_8"))]
 
 # NZ group 6; AUS group 4 also occur in TPG1 
 conv_gr2 <- fun_heatmap_tpg(data = tpg_acr_cont_2)
@@ -285,19 +287,21 @@ orders_conv_gr2 <- ggplot(tpg_acr_cont_uq2, aes(x = as.factor(order),
   labs(x = "Order", y = "Percentage per TPG") +
   theme_bw() +
   theme(
-    axis.title = element_text(size = 12),
-    axis.text.x = element_text(family = "Roboto Mono",
-                               size = 11, 
-                               angle = 45, 
-                               hjust = 1),
+    axis.title = element_text(size = 16),
+    axis.text.x = element_text(
+      family = "Roboto Mono",
+      size = 14,
+      angle = 45,
+      hjust = 1
+    ),
     axis.text.y = element_text(family = "Roboto Mono",
-                               size = 11),
+                               size = 14),
     legend.title = element_text(family = "Roboto Mono",
-                                size = 12),
+                                size = 16),
     legend.text = element_text(family = "Roboto Mono",
-                               size = 11),
+                               size = 14),
     strip.text = element_text(family = "Roboto Mono",
-                              size = 11),
+                              size = 14),
     panel.grid = element_blank()
   )
 conv_gr2 + orders_conv_gr2 + plot_annotation(tag_levels = "I")
@@ -325,10 +329,10 @@ tpg3_traits <- c(
 
 tpg_acr_cont_3 <-
   trait_CONT[trait %in% tpg3_traits & (
-    (continent == "AUS" & group == 1) |
-      (continent == "EU" & group %in% c(3, 4)) |
+    (continent == "AUS" & group == 6) |
+      (continent == "EU" & group %in% c(2, 3)) |
       (continent == "NOA" & group == 1) |
-      (continent == "NZ" & group %in% c(3, 7, 9))
+      (continent == "NZ" & group %in% c(1, 2, 3))
   ),]
 tpg_acr_cont_3[, continent := paste0(continent, "_", group)]
 
@@ -346,13 +350,13 @@ tpg_acr_cont_3[, trait := factor(
     )
 )]
 tpg_acr_cont_3[, continent := factor(continent,
-                                     levels = c("AUS_1",
+                                     levels = c("AUS_6",
+                                                "EU_2",
                                                 "EU_3",
-                                                "EU_4",
                                                 "NOA_1",
-                                                "NZ_3",
-                                                "NZ_7",
-                                                "NZ_9"))]
+                                                "NZ_1",
+                                                "NZ_2",
+                                                "NZ_3"))]
 
 # NZ group 6; AUS group 4 also occur in TPG1 
 conv_gr3 <- fun_heatmap_tpg(data = tpg_acr_cont_3)
@@ -381,19 +385,21 @@ orders_conv_gr3 <- ggplot(tpg_acr_cont_uq3, aes(x = as.factor(order),
   labs(x = "Order", y = "Percentage per TPG") +
   theme_bw() +
   theme(
-    axis.title = element_text(size = 12),
-    axis.text.x = element_text(family = "Roboto Mono",
-                               size = 11, 
-                               angle = 45, 
-                               hjust = 1),
+    axis.title = element_text(size = 16),
+    axis.text.x = element_text(
+      family = "Roboto Mono",
+      size = 14,
+      angle = 45,
+      hjust = 1
+    ),
     axis.text.y = element_text(family = "Roboto Mono",
-                               size = 11),
+                               size = 14),
     legend.title = element_text(family = "Roboto Mono",
-                                size = 12),
+                                size = 16),
     legend.text = element_text(family = "Roboto Mono",
-                               size = 11),
+                               size = 14),
     strip.text = element_text(family = "Roboto Mono",
-                              size = 11),
+                              size = 14),
     panel.grid = element_blank()
   )
 conv_gr3 + orders_conv_gr3 + plot_annotation(tag_levels = "I")
@@ -414,8 +420,29 @@ ggplot2::ggsave(
 global_dist <- readRDS(file.path(data_cache, "global_dist.rds"))
 global_dist <- rbindlist(global_dist, idcol = "continent")
 
-kable(global_dist[order(continent, -`global distance`), .(continent, 
-                                                          grouping_feature,
-                                                          `global distance`)],
-      format = "markdown")
+
+# For word output flextable seems to be the best option
+# library(flextable)
+# flextable(global_dist[, .(continent, grouping_feature, `global distance`)]) %>%
+#   theme_vanilla(.) %>%
+#   hline(.) %>%
+#   set_header_labels(
+#     .,
+#     continent = "Continent",
+#     grouping_feature = "Grouping feature",
+#     `global distance` = "Global distance"
+#   ) %>%
+#   autofit(.) %>% 
+#   set_caption(
+#     "Grouping features that contributed most to the global distance in the distance
+#                 matrices in terms of correlation between the distances obtained for each grouping
+#                 feature and the global distance obtained by mixing all the grouping features"
+#   ) %>% 
+#   save_as_docx(., path = file.path(data_paper, "Tables", "Tables_convergence_tp.docx"))
+
+# Markdown output
+# kable(global_dist[order(continent, -`global distance`), .(continent, 
+#                                                           grouping_feature,
+#                                                           `global distance`)],
+#       format = "markdown")
 

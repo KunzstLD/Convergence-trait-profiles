@@ -29,6 +29,7 @@ library(patchwork)
 
 # Table outputs
 library(knitr)
+library(reactable)
 
 # Random Forest
 library(rsample)  # data splitting
