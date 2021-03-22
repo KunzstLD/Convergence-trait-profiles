@@ -45,6 +45,32 @@ des_traits_order <- c(
 )
 
 # __________________________________________________________________________________________________
+#### Gap Statistic ####
+# __________________________________________________________________________________________________
+for(region in names(hc_output_ww)) {
+  png(
+    file = file.path(
+      data_paper,
+      "Graphs",
+      paste0("Gap_statistic_", region, ".png")
+    ),
+    width = 1300,
+    height = 1100,
+    res = 100
+  )
+  plot(
+    hc_output_ww[[region]]$gap_statistic,
+    main = paste(
+      "GAP",
+      region,
+      "\n Optimal number of groups:",
+      hc_output_ww[[region]]$optimal_nog
+    )
+  )
+  dev.off()
+}
+
+# __________________________________________________________________________________________________
 #### Grouping features ####
 # __________________________________________________________________________________________________
 

@@ -17,10 +17,12 @@ data_paper <- "./Paper"
 # ---- Libraries ---------------------------------------------------------
 
 # Data cleaning and data manipulation
+library(foreign)
 library(dplyr)
 library(data.table)
 library(Hmisc)
 library(zeallot)
+library(Hmisc)
 
 # Plotting
 library(ggplot2)

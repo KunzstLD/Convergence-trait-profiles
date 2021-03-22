@@ -1,0 +1,49 @@
+---
+title: "Manly Overlap Index"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Formula
+
+proportions $p$ species 1 classes $1 - K$
+
+proportions $q$ species 2 classes $1 - K$
+
+$d = 1 - \frac{\sum_{i = 1}^{K} p_i * q_i}{(\sum_{i = 1}^{K} p_i^2 * \sum q_i^2 )^\frac{1}{2}}$
+
+```{r, echo=FALSE}
+# Small example for Manly Overlap distance
+# make up some test data; two grouping features (2-3 traits)
+# calculate via hand:
+trait_matrix <-
+  data.frame(
+    "T_1" = c(0.5, 0.2),
+    "T_2" = c(0.5, 0.6),
+    "T_3" = c(0, 0.2),
+    # "Y_1" = c(0.1, 1),
+    # "Y_2" = c(0.9, 0),
+    row.names = c("A", "B")
+  )
+
+# Implementation from ade4 by hand
+nom <- sum(trait_matrix[1, 1:3] * trait_matrix[2, 1:3])
+denom <- sqrt(sum(trait_matrix[1, 1:3]^2))/sqrt(sum(trait_matrix[2, 1:3]^2))
+(1-nom/denom)^2
+
+# This is all pretty weird!
+# calculate via ade4 package:
+library(ade4)
+vec <- sub("\\_.*", "\\1", names(trait_matrix))
+blocks <- rle(vec)$lengths
+data <- prep.fuzzy(trait_matrix, blocks)
+data <- ktab.list.df(list(data))
+dist.ktab(data, type = "F", scann = TRUE)
+
+p <- df[x[1], ]
+q <- df[x[2], ]
+w <- 1 - sum(p * q)/sqrt(sum(p * p))/sqrt(sum(q * q))
+```

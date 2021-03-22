@@ -34,6 +34,57 @@ check_colNames <- function(x) {
   })
 }
 
+# create individual pattern of trait name (not category!)
+# i.e. feed_herbivore, feed_shredder -> feed
+create_pattern_ind <- function(x, non_trait_cols) {
+  if (missing(non_trait_cols)) {
+    trait_names_pattern <- sub("\\_.*|\\..*", "", names(x)) %>%
+      unique() %>%
+      paste0("^", .)
+  } else{
+    pat <- paste0(non_trait_cols, collapse = "|")
+    # get trait names & create pattern for subset
+    trait_names_pattern <-
+      grep(pat, names(x), value = TRUE, invert = TRUE) %>%
+      sub("\\_.*|\\..*", "", .) %>%
+      unique() %>%
+      paste0("^", .)
+  }
+  trait_names_pattern
+}
+
+# check for completeness of trait datasets
+completeness_trait_data <- function(x, non_trait_cols) {
+  trait_names_pattern <- create_pattern_ind(
+    x = x,
+    non_trait_cols = non_trait_cols
+  )
+  
+  # test how complete trait sets are
+  output <- matrix(ncol = 2, nrow = length(trait_names_pattern))
+  for (i in seq_along(trait_names_pattern)) {
+    # vector containing either 0 (no NAs) or a number (> 0) meaning that all
+    # entries for this trait contained NA
+    vec <-
+      x[, apply(.SD, 1, function(y) {
+        base::sum(is.na(y))
+      }),
+      .SDcols = names(x) %like% trait_names_pattern[[i]]
+      ]
+    
+    # How complete is the dataset for each individual trait?
+    output[i, ] <-
+      c(
+        (length(vec[vec == 0]) / nrow(x)) %>%
+          `*`(100) %>%
+          round(),
+        trait_names_pattern[[i]]
+      )
+  }
+  return(as.data.frame(output))
+}
+
+
 # _________________________________________________________________________
 #### Data extraction ####
 # _________________________________________________________________________
@@ -61,9 +112,9 @@ extract_train_error <- function(data) {
 }
 
 
-# _________________________________________________________________________
+# __________________________________________________________________________________________________
 #### Statistical Analysis ####
-# _________________________________________________________________________
+# __________________________________________________________________________________________________
 
 # Clustering --------------------------------------------------------------
 mycluster_hc <- function(x, k) {
@@ -305,6 +356,31 @@ fun_boruta_results <- function(data) {
                                 size = 16),
       panel.grid = element_blank()
     )
+}
+
+# __________________________________________________________________________________________________
+#### Trait aggregation ####
+# __________________________________________________________________________________________________
+
+# Direct aggregation to specified taxonomic level
+direct_agg <- function(trait_data,
+                       non_trait_cols,
+                       method,
+                       taxon_lvl,
+                       na.rm = TRUE) {
+  # get names of trait columns
+  pat <- paste0(non_trait_cols, collapse = "|")
+  trait_col <- grep(pat, names(trait_data), value = TRUE, invert = TRUE)
+  
+  # aggregate to specified taxon lvl
+  # Before applying this function, subset that no NA values occur in data
+  # (otherwise all NA entries are viewed as a group & aggregated as well)
+  agg_data <- trait_data[,
+                         lapply(.SD, method, na.rm = na.rm),
+                         .SDcols = trait_col,
+                         by = taxon_lvl
+  ]
+  agg_data
 }
 
 
