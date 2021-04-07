@@ -5,15 +5,18 @@
 # ___________________________________________________________________________
 
 # Load trait data
-trait_data_ww <- load_data(pattern = "*.rds", path = data_in)
+trait_data_ww <- load_data(pattern = ".*agg\\.rds", path = data_in)
 
 # Check if trait datasets have the same colnames
 trait_data_ww %>% check_colNames()
 
 # Rm dev for now
+# Looking at the trait distributions revealed that in all databases no parasites were present 
 trait_data_ww <- lapply(
   trait_data_ww,
-  function(y) y[, c("dev_holometabol", "dev_hemimetabol") := NULL]
+  function(y) y[, c("dev_holometabol", 
+                    "dev_hemimetabol", 
+                    "feed_parasite") := NULL]
 )
 
 # rename file list
@@ -59,7 +62,7 @@ lapply(
   }
 )
 
-# ---- Overview over orders --------------------------------------------------
+# ---- Overview over orders ------------------------------------------------------------------------
 
 # Bind trait data
 trait_data_bind <- rbindlist(trait_data_ww, idcol = "continent")

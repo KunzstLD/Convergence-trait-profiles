@@ -14,7 +14,7 @@ data_out <- "./Output"
 data_paper <- "./Paper"
 
 
-# ---- Libraries ---------------------------------------------------------
+# ---- Libraries -----------------------------------------------------------------------------------
 
 # Data cleaning and data manipulation
 library(foreign)
@@ -43,14 +43,21 @@ library(caret)
 # Variable importance
 library(Boruta)
 
-# Cluster Analysis
+# Cluster Analysis, treatment fuzzy coded variables and related
 library(cluster)
-library(FD) # calculation gower distance
+library(FD)
 library(vegan)
-
-# FuzzyCA and related
 library(ade4)
 library(vegan)
+
+# Spatial operations
+library(sf)
+library(maptools)
+library(raster)
+library(sp)
+library(tiff)
+library(ijtiff)
+library(rgdal)
 
 # source function script
 source(file = file.path(data_scr, "functions_used.R"))

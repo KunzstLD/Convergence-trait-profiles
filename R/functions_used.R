@@ -84,6 +84,37 @@ completeness_trait_data <- function(x, non_trait_cols) {
   return(as.data.frame(output))
 }
 
+# Normalization of trait scores 
+# All trait states of one trait are divided by their row sum
+# Hence, trait affinities are represented as "%" or ratios
+normalize_by_rowSum <- function(x, 
+                                non_trait_cols, 
+                                na.rm = TRUE) {
+  # get trait names & create pattern for subset
+  trait_names_pattern <- create_pattern_ind(x = x,
+                                            non_trait_cols = non_trait_cols)
+  
+  # loop for normalization (trait categories for each trait sum up to 1)
+  for (cols in trait_names_pattern) {
+    # get row sum for a specific trait
+    x[, rowSum := apply(.SD, 1, sum, na.rm = na.rm),
+      .SDcols = names(x) %like% cols]
+    
+    # get column names for assignment
+    col_name <- names(x)[names(x) %like% cols]
+    
+    # divide values for each trait state by
+    # the sum of trait state values
+    x[, (col_name) := lapply(.SD, function(y) {
+      round(y / rowSum, digits = 2)
+    }),
+    .SDcols = names(x) %like% cols]
+  }
+  # del rowSum column
+  x[, rowSum := NULL]
+  return(x)
+}
+
 
 # _________________________________________________________________________
 #### Data extraction ####
@@ -242,12 +273,12 @@ fun_dendrog_pl <- function(hc,
 # Create heatmap with ggplot for TPGs and Grouping features for each continent
 # Columns of data are hardcoded, maybe change in the future
 fun_heatmap_single_cont <- function(data) {
-  ggplot(data, aes(x = trait_label,
-                   y = family,
+  ggplot(data, aes(x = family,
+                   y = trait_label,
                    fill = affinity)) +
     geom_tile() +
     facet_grid(
-      group ~ factor(grouping_feature),
+      factor(grouping_feature) ~ group,
       scales = "free",
       space = "free",
       labeller = as_labeller(grouping_feature_names)
@@ -262,7 +293,7 @@ fun_heatmap_single_cont <- function(data) {
       axis.text.x = element_text(
         family = "Roboto Mono",
         size = 14,
-        angle = 45,
+        angle = 50,
         hjust = 1
       ),
       axis.text.y = element_text(family = "Roboto Mono",

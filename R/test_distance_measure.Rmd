@@ -16,6 +16,8 @@ proportions $q$ species 2 classes $1 - K$
 $d = 1 - \frac{\sum_{i = 1}^{K} p_i * q_i}{(\sum_{i = 1}^{K} p_i^2 * \sum q_i^2 )^\frac{1}{2}}$
 
 ```{r, echo=FALSE}
+library(ade4)
+
 # Small example for Manly Overlap distance
 # make up some test data; two grouping features (2-3 traits)
 # calculate via hand:
@@ -24,26 +26,48 @@ trait_matrix <-
     "T_1" = c(0.5, 0.2),
     "T_2" = c(0.5, 0.6),
     "T_3" = c(0, 0.2),
-    # "Y_1" = c(0.1, 1),
-    # "Y_2" = c(0.9, 0),
+    "Y_1" = c(0.1, 1),
+    "Y_2" = c(0.9, 0),
     row.names = c("A", "B")
   )
-
+# According to the dist.ktab() function definition, the Overlap index Manly index is used by default for fuzzy coded variables (line 74, methodF <- 2)
+# To calculate distances dist.ktab() uses the function dist.prop(). According to the function definition method2 uses fun2, which is defined: 1 - sum(p * q) / sqrt(sum(p * p)) / sqrt(sum(q * q))
 # Implementation from ade4 by hand
-nom <- sum(trait_matrix[1, 1:3] * trait_matrix[2, 1:3])
-denom <- sqrt(sum(trait_matrix[1, 1:3]^2))/sqrt(sum(trait_matrix[2, 1:3]^2))
-(1-nom/denom)^2
+fun_overlap_ind <-
+  function(p, q) {
+    1 - sum(p * q) / sqrt(sum(p * p)) / sqrt(sum(q * q))
+  }
+val_1 <- fun_overlap_ind(p = trait_matrix[1, 1:3],
+                         q = trait_matrix[2, 1:3])
 
-# This is all pretty weird!
+val_2 <- fun_overlap_ind(p = trait_matrix[1, 4:5],
+                         q = trait_matrix[2, 4:5])
+(mean(c(val_1, val_2)))
+
 # calculate via ade4 package:
-library(ade4)
 vec <- sub("\\_.*", "\\1", names(trait_matrix))
 blocks <- rle(vec)$lengths
-data <- prep.fuzzy(trait_matrix, blocks)
-data <- ktab.list.df(list(data))
-dist.ktab(data, type = "F", scann = TRUE)
+dat <- prep.fuzzy(trait_matrix, blocks)
+dat <- ktab.list.df(list(dat))
+dist.ktab(dat, type = "F", scann = FALSE)
+```
 
-p <- df[x[1], ]
-q <- df[x[2], ]
-w <- 1 - sum(p * q)/sqrt(sum(p * p))/sqrt(sum(q * q))
+```{r}
+# Example from handbook of trait based ecology
+red <- c(1, 0, 0.5, 0, 0.2, 0, 1)
+yellow <- c(0, 1, 0, 0, 0.3, 1, 0)
+blue <- c(0, 0, 0.5, 1, 0.5, 0, 0)
+colors.fuzzy <- data.frame(red, yellow, blue)
+rownames(colors.fuzzy) <- paste("sp", 1:7, sep = "")
+
+colors.fuzzy2 <- prep.fuzzy(colors.fuzzy, col.blocks = 3)
+#this apparently complicated step is just to make sure that the fuzzy traits are
+#considered as such: indeed, the argument col.blocks defines how many columns 
+#characterize this trait
+list.colour <- ktab.list.df(list(colors.fuzzy2))
+dis.colour.ktab <- dist.ktab(list.colour, type = "F")
+dis.colour.ktab
+
+sqrt(fun_overlap_ind(p = colors.fuzzy[1, ], 
+                q = colors.fuzzy[3, ]))
 ```

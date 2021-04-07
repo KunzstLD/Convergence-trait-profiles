@@ -13,10 +13,10 @@ knitr::opts_chunk$set(echo = TRUE)
 # Set up
 library(data.table)
 library(reactable)
+library(htmltools)
 ```
 
-
-## Table 2 
+## Table 2
 
 Contribution of grouping features to the global distances.
 
@@ -36,12 +36,10 @@ reactable(global_dist[, .(continent, grouping_feature, global_dist = round(`glob
 
 ## Table 3
 
-Five most important traits to distinguish TPGs for each continent. After the initial run the highest
-ranking variable has been removed and a random forest has been fitted again.
-This procedure has been repeated 4 times. Training error and test error for the fitted random 
-forest are shown in the last two columns.
+Five most important traits to distinguish TPGs for each continent. After the initial run the highest ranking variable has been removed and a random forest has been fitted again. This procedure has been repeated 4 times. Training error and test error for the fitted random forest are shown in the last two columns.
 
 ```{r, echo = FALSE}
+
 rf_vimp <- readRDS("/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/rf_vimp.rds")
 reactable(
   rf_vimp[, .(
@@ -66,3 +64,17 @@ reactable(
 )
 ```
 
+## Table 4
+
+```{r, echo = FALSE}
+
+summary_cr_taxa <- readRDS("/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/Cache_comparison_climatic_reg/summary_cr_taxa.rds")
+
+reactable(
+  summary_cr_taxa,
+  highlight = TRUE, 
+  columns = list(
+    `Nr. Taxa EU` = colDef(name = "Nr. Taxa EU (mostly species lvl)"),
+    `Nr. Taxa NOA` = colDef(name = "Nr. Taxa NOA (genus lvl)")
+  ))
+```

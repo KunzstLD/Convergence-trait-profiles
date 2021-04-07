@@ -8,11 +8,13 @@
 hc_output_ww <- readRDS(file.path(data_cache,
                                   "hc_output_ww.rds"))
 
-# Trait data
-trait_data_ww <- load_data(pattern = "*.rds", path = data_in)
+# Load trait data (with order information)
+trait_data_ww <- load_data(pattern = "agg*.rds", path = data_in)
 
 # Rm dev stage 
-trait_data_ww <- lapply(trait_data_ww, function(y) y[, c("dev_hemimetabol", "dev_holometabol") := NULL])
+trait_data_ww <- lapply(trait_data_ww, function(y) y[, c("dev_hemimetabol", 
+                                                         "dev_holometabol", 
+                                                         "feed_parasite") := NULL])
 
 # Desired order of traits (for plotting purposes later on)
 des_traits_order <- c(
@@ -23,7 +25,6 @@ des_traits_order <- c(
   "feed_filter",
   "feed_gatherer",
   "feed_herbivore",
-  "feed_parasite",
   "feed_predator",
   "feed_shredder",
   "locom_burrow",
@@ -43,32 +44,6 @@ des_traits_order <- c(
   "volt_uni",
   "volt_bi_multi"
 )
-
-# __________________________________________________________________________________________________
-#### Gap Statistic ####
-# __________________________________________________________________________________________________
-for(region in names(hc_output_ww)) {
-  png(
-    file = file.path(
-      data_paper,
-      "Graphs",
-      paste0("Gap_statistic_", region, ".png")
-    ),
-    width = 1300,
-    height = 1100,
-    res = 100
-  )
-  plot(
-    hc_output_ww[[region]]$gap_statistic,
-    main = paste(
-      "GAP",
-      region,
-      "\n Optimal number of groups:",
-      hc_output_ww[[region]]$optimal_nog
-    )
-  )
-  dev.off()
-}
 
 # __________________________________________________________________________________________________
 #### Grouping features ####
@@ -110,13 +85,38 @@ saveRDS(object = global_dist,
 #### Create plots ####
 # __________________________________________________________________________________________________
 
+# _________________________________________________________
+#### Gap Statistic ####
+# _________________________________________________________
+for(region in names(hc_output_ww)) {
+  png(
+    file = file.path(
+      data_paper,
+      "Graphs",
+      paste0("Gap_statistic_", region, ".png")
+    ),
+    width = 1300,
+    height = 1100,
+    res = 100
+  )
+  plot(
+    hc_output_ww[[region]]$gap_statistic,
+    main = paste(
+      "GAP",
+      region,
+      "\n Optimal number of groups:",
+      hc_output_ww[[region]]$optimal_nog
+    )
+  )
+  dev.off()
+}
+
 # _______________________________________________________
 #### Dendrogramm #### 
 # TODO: Dendrogram with order as labels
 # TODO: A few family names are too long, 
 # needs visual improvement
 # _______________________________________________________
-
 dendrograms <- list()
 for (i in names(hc_output_ww)) {
   plot <- fun_dendrog_pl(
@@ -223,6 +223,75 @@ ggplot2::ggsave(
   filename = file.path(data_paper,
                        "Graphs", 
                        "Heatmap_tpgs_AUS.png"),
+  width = 45,
+  height = 33,
+  units = "cm"
+)
+
+# Orders (do we have phylogenetic signal?)
+trait_AUS[, nr_families_gr := .N, by = group]
+trait_AUS[, prop_order := .N/nr_families_gr, by = .(group, order)]
+
+# Label function for plot (and following)
+tpg_names <- c("1" = "TPG 1",
+               "2" = "TPG 2",
+               "3" = "TPG 3",
+               "4" = "TPG 4",
+               "5" = "TPG 5",
+               "6" = "TPG 6",
+               "7" = "TPG 7",
+               "8" = "TPG 8", 
+               "9" = "TGP 9", 
+               "10" = "TPG 10")
+
+# Annotate nr of families per TPG 
+annotations_aus <- unique(trait_AUS[order(group), .(group, nr_families_gr)])
+annotations_aus[, `:=`(
+  x = rep(7.3, 7),
+  y = c(7.1, 6.1, 5.1, 4.1, 3.1, 2.1, 1.5),
+  label = paste0("n = ", nr_families_gr)
+)]
+
+ggplot(trait_AUS, aes(x = as.factor(order),
+                      y = prop_order * 100)) +
+  geom_pointrange(aes(ymin = 0,
+                      ymax = prop_order * 100))  +
+  geom_text(
+    data = annotations_aus,
+    aes(x = x,
+        y = y,
+        label = label),
+    colour = "black",
+    inherit.aes = FALSE,
+    parse = FALSE,
+    size = 5
+  ) +
+  facet_grid(group ~ ., labeller = as_labeller(tpg_names)) +
+  labs(x = "Order", y = "Percentage per TPG") +
+  ggtitle("AUS: Orders per TPGs") +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 16),
+    axis.text.x = element_text(
+      family = "Roboto Mono",
+      size = 14,
+      angle = 45,
+      hjust = 1
+    ),
+    axis.text.y = element_text(family = "Roboto Mono",
+                               size = 14),
+    legend.title = element_text(family = "Roboto Mono",
+                                size = 16),
+    legend.text = element_text(family = "Roboto Mono",
+                               size = 14),
+    strip.text = element_text(family = "Roboto Mono",
+                              size = 14),
+    panel.grid = element_blank()
+  )
+ggplot2::ggsave(
+  filename = file.path(data_paper,
+                       "Graphs", 
+                       "Orders_per_TPG_AUS.png"),
   width = 35,
   height = 33,
   units = "cm"
@@ -288,6 +357,62 @@ ggplot2::ggsave(
   filename = file.path(data_paper,
                        "Graphs", 
                        "Heatmap_tpgs_EU.png"),
+  width = 47,
+  height = 33,
+  units = "cm"
+)
+
+# Orders (do we have phylogenetic signal?)
+trait_EU[, nr_families_gr := .N, by = group]
+trait_EU[, prop_order := .N/nr_families_gr, by = .(group, order)]
+
+annotations_eu <- unique(trait_EU[order(group), .(group, nr_families_gr)])
+annotations_eu[, `:=`(
+  x = rep(7.3, 10),
+  y = c(10.1, 9.1, 8.1, 7.1, 6.1, 5.1, 4.3, 3.3, 2.3, 1.5),
+  label = paste0("n = ", nr_families_gr)
+)]
+
+ggplot(trait_EU, aes(x = as.factor(order),
+                      y = prop_order * 100)) +
+  geom_pointrange(aes(ymin = 0,
+                      ymax = prop_order * 100))  +
+  geom_text(
+    data = annotations_eu,
+    aes(x = x,
+        y = y,
+        label = label),
+    colour = "black",
+    inherit.aes = FALSE,
+    parse = FALSE,
+    size = 5
+  ) +
+  facet_grid(group ~ ., labeller = as_labeller(tpg_names)) +
+  labs(x = "Order", y = "Percentage per TPG") +
+  ggtitle("EU: Orders per TPGs") +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 16),
+    axis.text.x = element_text(
+      family = "Roboto Mono",
+      size = 14,
+      angle = 45,
+      hjust = 1
+    ),
+    axis.text.y = element_text(family = "Roboto Mono",
+                               size = 14),
+    legend.title = element_text(family = "Roboto Mono",
+                                size = 16),
+    legend.text = element_text(family = "Roboto Mono",
+                               size = 14),
+    strip.text = element_text(family = "Roboto Mono",
+                              size = 14),
+    panel.grid = element_blank()
+  )
+ggplot2::ggsave(
+  filename = file.path(data_paper,
+                       "Graphs", 
+                       "Orders_per_TPG_EU.png"),
   width = 35,
   height = 33,
   units = "cm"
@@ -339,11 +464,7 @@ grouping_feature_names <- c(
   "3" = "TPG 3",
   "4" = "TPG 4",
   "5" = "TPG 5",
-  "6" = "TPG 6",
-  "7" = "TPG 7",
-  "8" = "TPG 8",
-  "9" = "TPG 9",
-  "10" = "TPG 10"
+  "6" = "TPG 6"
 )
 
 # plot
@@ -351,12 +472,69 @@ fun_heatmap_single_cont(data = trait_NOA_lf) +
   ggtitle("TPGs NOA")
 ggplot2::ggsave(
   filename = file.path(data_paper,
-                       "Graphs", 
+                       "Graphs",
                        "Heatmap_tpgs_NOA.png"),
+  width = 50,
+  height = 33,
+  units = "cm"
+)
+
+# Orders (do we have phylogenetic signal?)
+trait_NOA[, nr_families_gr := .N, by = group]
+trait_NOA[, prop_order := .N/nr_families_gr, by = .(group, order)]
+
+annotations_noa <- unique(trait_NOA[order(group), .(group, nr_families_gr)])
+annotations_noa[, `:=`(
+  x = rep(9.3, 6),
+  y = c(6.1:1.1),
+  label = paste0("n = ", nr_families_gr)
+)]
+
+ggplot(trait_NOA, aes(x = as.factor(order),
+                     y = prop_order * 100)) +
+  geom_pointrange(aes(ymin = 0,
+                      ymax = prop_order * 100))  +
+  geom_text(
+    data = annotations_noa,
+    aes(x = x,
+        y = y,
+        label = label),
+    colour = "black",
+    inherit.aes = FALSE,
+    parse = FALSE,
+    size = 5
+  ) +
+  facet_grid(group ~ ., labeller = as_labeller(tpg_names)) +
+  labs(x = "Order", y = "Percentage per TPG") +
+  ggtitle("NOA: Orders per TPGs") +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 16),
+    axis.text.x = element_text(
+      family = "Roboto Mono",
+      size = 14,
+      angle = 45,
+      hjust = 1
+    ),
+    axis.text.y = element_text(family = "Roboto Mono",
+                               size = 14),
+    legend.title = element_text(family = "Roboto Mono",
+                                size = 16),
+    legend.text = element_text(family = "Roboto Mono",
+                               size = 14),
+    strip.text = element_text(family = "Roboto Mono",
+                              size = 14),
+    panel.grid = element_blank()
+  )
+ggplot2::ggsave(
+  filename = file.path(data_paper,
+                       "Graphs", 
+                       "Orders_per_TPG_NOA.png"),
   width = 35,
   height = 33,
   units = "cm"
 )
+
 
 #*****************************************************#
 #---- NZ ----
@@ -418,6 +596,62 @@ ggplot2::ggsave(
   filename = file.path(data_paper,
                        "Graphs", 
                        "Heatmap_tpgs_NZ.png"),
+  width = 45,
+  height = 33,
+  units = "cm"
+)
+
+# Orders (do we have phylogenetic signal?)
+trait_NZ[, nr_families_gr := .N, by = group]
+trait_NZ[, prop_order := .N/nr_families_gr, by = .(group, order)]
+
+annotations_nz <- unique(trait_NZ[order(group), .(group, nr_families_gr)])
+annotations_nz[, `:=`(
+  x = rep(9.3, 9),
+  y = c(9.1:1.1),
+  label = paste0("n = ", nr_families_gr)
+)]
+
+ggplot(trait_NZ, aes(x = as.factor(order),
+                      y = prop_order * 100)) +
+  geom_pointrange(aes(ymin = 0,
+                      ymax = prop_order * 100))  +
+  geom_text(
+    data = annotations_nz,
+    aes(x = x,
+        y = y,
+        label = label),
+    colour = "black",
+    inherit.aes = FALSE,
+    parse = FALSE,
+    size = 5
+  ) +
+  facet_grid(group ~ ., labeller = as_labeller(tpg_names)) +
+  labs(x = "Order", y = "Percentage per TPG") +
+  ggtitle("NZ: Orders per TPGs") +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 16),
+    axis.text.x = element_text(
+      family = "Roboto Mono",
+      size = 14,
+      angle = 45,
+      hjust = 1
+    ),
+    axis.text.y = element_text(family = "Roboto Mono",
+                               size = 14),
+    legend.title = element_text(family = "Roboto Mono",
+                                size = 16),
+    legend.text = element_text(family = "Roboto Mono",
+                               size = 14),
+    strip.text = element_text(family = "Roboto Mono",
+                              size = 14),
+    panel.grid = element_blank()
+  )
+ggplot2::ggsave(
+  filename = file.path(data_paper,
+                       "Graphs", 
+                       "Orders_per_TPG_NZ.png"),
   width = 35,
   height = 33,
   units = "cm"

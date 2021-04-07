@@ -8,10 +8,6 @@
 # Read in trait data with group assignment
 trait_CONT <- readRDS(file.path(data_cache, "trait_dat_grp_assig.rds"))
 
-# Rm dev traits for now
-trait_CONT <- trait_CONT[!trait %in% c("dev_hemimetabol", "dev_holometabol"),] 
-
-
 # --- TPG's ----------------------------------------------------------------------------------------
 
 # Unique families per continent and group
