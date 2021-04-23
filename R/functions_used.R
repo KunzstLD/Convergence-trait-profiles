@@ -286,26 +286,26 @@ fun_heatmap_single_cont <- function(data) {
     scale_fill_gradient(name = "Trait affinity",
                         low = "#FFFFF1",
                         high = "#012345") +
-    labs(x = "Trait", y = "Family") +
+    labs(x = "Family", y = "Trait") +
     theme_bw() +
     theme(
-      axis.title = element_text(size = 16),
+      axis.title = element_text(size = 18),
       axis.text.x = element_text(
         family = "Roboto Mono",
-        size = 14,
-        angle = 50,
+        size = 16,
+        angle = 90,
         hjust = 1
       ),
       axis.text.y = element_text(family = "Roboto Mono",
-                                 size = 14),
+                                 size = 16),
       legend.title = element_text(family = "Roboto Mono",
-                                  size = 16),
+                                  size = 18),
       legend.text = element_text(family = "Roboto Mono",
-                                 size = 14),
+                                 size = 16),
       strip.text = element_text(family = "Roboto Mono",
-                                size = 14),
-      plot.title = element_text(family = "Roboto Mono", 
                                 size = 16),
+      plot.title = element_text(family = "Roboto Mono", 
+                                size = 18),
       panel.grid = element_blank()
     )
 }

@@ -35,144 +35,173 @@ ggplot(obs_group, aes(x = group, y = N)) +
              scales = "free") +
   ylim(0, 20)
 
-
 # "group" should be a factor variable 
 trait_dat <- lapply(trait_dat, function(y) y[, group := factor(make.names(group))])
+# lapply(trait_dat, dim)
 
 # --- Calculate RF ---------------------------------------------------------------------------------
-results_rf <- list()
-for(region in c("AUS", "EU", "NOA", "NZ")) {
-  
-  dat <- copy(trait_dat[[region]])
-  dat <- dat[, -c("family", "order")]
 
-  # Create training and test data set
-  ind <- createDataPartition(dat$group, p = 0.75)
-  train <- dat[ind[[1]], ]
-  test <- dat[-ind[[1]], ]
+most_imp_vars <- list()
+ls_instance <- list()
+scores_test <- list()
+scores_train <- list()
+
+trait_dat_cp <- copy(trait_dat)
+trait_dat_cp <- lapply(trait_dat_cp, function(y) y[, c("family", "order") := NULL])
+
+for(region in names(trait_dat_cp)) {
   
-  # Calculate RF results
   set.seed(1234)
-  results_rf[[region]] <- meta_rf(train = train,
-                             test = test)
-}
-
-# prepare results
-rf_summary <- data.frame(extract_vi(results_rf))
-setDT(rf_summary)
-rf_summary <- melt(
-  rf_summary,
-  measure.vars = c("AUS", "EU", "NOA", "NZ"),
-  variable.name = "continent",
-  value.name = "most_important_traits"
-)
-
-acc_results <- data.frame(extract_test_error(results_rf),
-                          extract_train_error(results_rf))
-setDT(acc_results, keep.rownames = "continent")
-
-rf_summary[acc_results,
-           `:=`(test_accuracy = i.extract_test_error.results_rf.,
-                train_accuracy = i.extract_train_error.results_rf.),
-           on = "continent"]
-
-
-
-# use caret
-for(region in c("AUS", "EU", "NOA", "NZ")) {
+  dat <- trait_dat_cp[[region]]
   
-  dat <- trait_dat[["AUS"]]
-  dat[, c("family", "order") := NULL]
-  n_features <- length(dat)
-  
-  ind <- createDataPartition(dat$group, p = 2/3)
+  # TODO Split in train and test data (stratified)
+  ind <- createDataPartition(dat$group, p = 0.7)
   train <- dat[ind[[1]],]
   test <- dat[-ind[[1]],]
   
-  # createFolds() does stratified k-fold cv
-  # From the docs: "The random sampling is done within the levels of y (=outcomes) 
-  # when y is a factor in an attempt to balance the class distributions within the splits."
-  strat_folds <- createFolds(y = train$group, 
-              k = 5)
+  # Create tasks
+  task_train <- TaskClassif$new(id = paste0(region, "_train"),
+                                backend = train,
+                                target = "group")
+
+  # Specify stratification for cv
+  task_train$col_roles$stratum <- "group"
   
-  # Specify type of resampling, 5 -fold CV
-  fitControl <- trainControl(method = "cv",
-                             number = 5,
-                             classProbs = TRUE,
-                             index = strat_folds)
+  # Create random forest learner
+  # list of possible learners: mlr3learners
+  rf_learner <- lrn("classif.ranger",
+                    predict_type = "prob",
+                    importance = "permutation")
   
-  # Tuning grid
-  grid <- expand.grid(
-    mtry = seq(2, n_features-1, 2),
-    splitrule = c("gini"),
-    min.node.size = c(1:10)
+  # Set up search space
+  # rf_learner$param_set
+  search_space <- ps(
+    mtry = p_int(lower = 1, upper = length(task_train$data()) - 1),
+    min.node.size = p_int(lower = 1, upper = 10)#,
+    #  sample.fraction = p_dbl(lower = 0.632, upper = 0.8)
   )
   
-  set.seed(1234)
-  rf_fit <- train(
-    group ~ .,
-    data = train,
-    method = "ranger",
-    metric = "Kappa",
-    trControl = fitControl,
-    tuneGrid = grid,
-    num.trees = (n_features - 1) * 10,
-    verbose = FALSE,
-    importance = "permutation"
-   )
+  # Resampling
+  resampling <- rsmp("cv",
+                     folds = 5L)
   
+  # Check if stratification worked
+  # dt <- merge(resampling$instance, task$data()[, row_id := .I], by = "row_id")
+  # # overall class distribution
+  # dt[, class_distrib := (.N / nrow(dt)) * 100,
+  #    by = group]
+  # dt[, class_distrib := round(class_distrib, 2)]
+  # # class distribution in folds
+  # dt[, n_fold := .N, by = fold]
+  # dt[, class_distrib_fold := (.N/n_fold)*100, by = .(fold, group)]
+  # dt[, class_distrib_fold := round(class_distrib_fold, 2)]
+  # unique(dt[, .(group, fold, class_distrib_fold, class_distrib)] %>%
+  #          .[order(group, fold), ])
+  
+  # Performance measure for resampling (multivariate Brier score)
+  mbrier_metric <- msr("classif.mbrier")
+  
+  # When to terminate tuning
+  evals20 <- trm("evals", n_evals = 100)
+  instance = TuningInstanceSingleCrit$new(
+    task = task_train,
+    learner = rf_learner,
+    resampling = resampling,
+    measure = mbrier_metric,
+    search_space = search_space,
+    terminator = evals20
+  )
+  
+  # Optimization via grid search
+  tuner <- tnr("grid_search", resolution = 10)
+  tuner$optimize(instance)
+  ls_instance[[region]] <- instance
+
+  # Train rf on train dataset with optimized parameters
+  rf_learner$param_set$values <- instance$result_learner_param_vals
+  rf_learner$train(task_train)
+  pred_train <- rf_learner$predict_newdata(newdata = train)
+  scores_train[[region]] <- pred_train$score(msr("classif.mbrier"))
+  
+  # Check model on test dataset
+  pred_test <- rf_learner$predict_newdata(newdata = test)
+  scores_test[[region]] <- pred_test$score(msr("classif.mbrier"))
+  
+  # Retrieve most important variables
+  most_imp_vars[[region]] <- rf_learner$importance()
 }
 
-# --- Brier score ---------------------------------
-# Do not use Accuracy but rather Brier score 
-# to evaluate prediction strength of RF Model
+# Get optimal param. values and associated mbrier score
+ls_instance$AUS$archive$data[order(classif.mbrier),][1,]
+ls_instance$EU$archive$data[order(classif.mbrier),][1,]
+ls_instance$NOA$archive$data[order(classif.mbrier),][1,]
+ls_instance$NZ$archive$data[order(classif.mbrier),][1,]
+# instance$result_learner_param_vals
 
-# TODO Custom metric for CV
-# function(data, 
-#          lev = NULL,
-#          model = NULL){
-#   
-# }
+# Inspect prediction re mbrier score
+scores_test
+scores_train
 
-# On OOB data
-rf_fit$finalModel
+scores_test <- do.call(rbind, scores_test) %>%
+  as.data.frame()
+names(scores_test)[names(scores_test) == "classif.mbrier"] <- "mbrier_score_test"
+scores_test$continent <- rownames(scores_test)
+scores_train <- do.call(rbind, scores_train) %>%
+  as.data.frame()
+names(scores_train)[names(scores_train) == "classif.mbrier"] <- "mbrier_score_train"
+perf_summary <- cbind(scores_test, scores_train)
+setDT(perf_summary)
+setcolorder(perf_summary, 
+            neworder = "continent")
+saveRDS(perf_summary, file.path(data_cache, "perf_summary.rds"))
 
-# On test dataset
-pred_test <- predict(rf_fit, newdata = test, type = "prob")
-setDT(pred_test)
+# Most important variables
+lapply(most_imp_vars, function(y) as.data.frame(y)) %>% 
+  do.call(rbind, .)
+       
 
-pred_results_test <- data.table(
-  ground_truth = as.numeric(sub("X", "", test$group)),
-  pred_group = apply(pred_test, MARGIN = 1, function(y)
-    which(y == max(y)))
-)
-pred_results_test[, o_t := ifelse(ground_truth == pred_group, 1, 0)]                              
-pred_results_test[, pred_group_label := paste0("X", pred_group)]
-pred_results_test[, f_t := apply(pred_test, MARGIN = 1, function(y)
-  y[which(y == max(y))])]
-
-pred_results_test[, mean((f_t - o_t)^2)]
-
+ggplot(rf_vimp, aes(x = reorder(as.factor(traits), value),
+                    y = value)) +
+  geom_point() +
+  facet_grid(. ~ as.factor(continent)) +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 16),
+    axis.text.x = element_text(
+      family = "Roboto Mono",
+      size = 14,
+      angle = 90,
+      hjust = 1
+    ),
+    axis.text.y = element_text(family = "Roboto Mono",
+                               size = 14),
+    legend.title = element_text(family = "Roboto Mono",
+                                size = 16),
+    legend.text = element_text(family = "Roboto Mono",
+                               size = 14),
+    strip.text = element_text(family = "Roboto Mono",
+                              size = 14),
+    panel.grid = element_blank()
+  )
 
 # --- Variable selection with wrapper algorithm Boruta ---------------------------------------------
-res <- list()
+output <- list()
 for (region in c("AUS", "EU", "NOA", "NZ")) {
-  # Preprocessing
-  data <- copy(trait_dat[[region]])
-  data <- data[, -c("family", "order")]
-  data[, group := factor(as.character(group))]
   
-  res[[region]] <- Boruta(group ~ .,
-                          data = data,
+  set.seed(1234)
+  dat <- trait_dat_cp[[region]]
+  output[[region]] <- Boruta(group ~ .,
+                          data = dat,
                           maxRuns = 100)
 }
+
 # TODO: show values of all iterations
-boruta_res <- lapply(res, attStats)
+boruta_res <- lapply(output, attStats)
 
 for(region in names(boruta_res)) {
   plot <- fun_boruta_results(data = boruta_res[[region]]) +
     ggtitle(paste0(region, ": Variable selection with Boruta"))
-  
+
   ggplot2::ggsave(
     filename = file.path(
       data_paper,
@@ -184,3 +213,30 @@ for(region in names(boruta_res)) {
     units = "cm"
   )
 }
+
+# ?trait interactions
+
+# --- Brier score ----------------------------------------------------------------------------------
+# Do not use Accuracy but rather Brier score 
+# to evaluate prediction strength of RF Model
+
+# o_t <- list()
+# idx <- as.numeric(sub("X", "",test$group))
+# o_t <- matrix(data = 0,
+#               ncol = length(unique(test$group)),
+#               nrow = nrow(test))
+# # Create o_t matrix based on the ground truth of the test set
+# for(i in 1:nrow(o_t)){
+#   o_t[i, idx[i]] <- 1
+# }
+# 
+# # calculate Brier score
+# res <- vector(mode = "numeric")
+# for(i in 1:nrow(pred_test)) {
+#   res[[i]] <- sum((pred_test[i,] - o_t[i,]) ^ 2)
+# }
+# mean(res)
+
+# How to implement in caret? Or use other framework?
+# https://stackoverflow.com/questions/66235293/how-to-obtain-brier-score-in-random-forest-in-r
+# https://cran.r-project.org/web/packages/randomForestSRC/randomForestSRC.pdf

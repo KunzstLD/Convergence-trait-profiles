@@ -84,13 +84,11 @@ kg_cr[sum_occ_mcr == 1, climateregion := fcase(B == 1, "arid",
 traits_EU[kg_cr[!is.na(climateregion), ],
           `:=`(climateregion = i.climateregion),
           on = "ID_AQEM"]
-
 traits_eu_cr <- traits_EU[!is.na(climateregion), ]
 traits_eu_cr[, spec_per_cr := .N , by = climateregion]
 
-
 traits_eu_cr <- traits_eu_cr[, .SD,
-                             .SDcols = names(traits_eu_cr) %like% "locom|feed|resp|volt|size|bf|ovip|dev|species|genus|family|order"] %>%
+                             .SDcols = names(traits_eu_cr) %like% "locom|feed|resp|volt|size|bf|ovip|temp|species|genus|family|order|climateregion"] %>%
   .[order %in% c(
     "Ephemeroptera",
     "Hemiptera",
@@ -103,42 +101,10 @@ traits_eu_cr <- traits_eu_cr[, .SD,
     "Neuroptera"
   ),]
 
-# trait aggregation to family-lvl
+# check completeness
+completeness_trait_data(x = traits_eu_cr[, .SD, .SDcols = patterns("size|feed|resp|locom|volt|temp")])
 
-# just return rows where for each trait there is an observation
-test <- normalize_by_rowSum(x = traits_eu_cr[, .SD, .SDcols = patterns("locom|feed|resp")],
-                            non_trait_cols = c("order",
-                                               "family",
-                                               "genus",
-                                               "species")) %>%
-  na.omit(.,
-          cols = names(.[, -c("family",
-                              "order", 
-                              "genus",
-                              "family")]))
-
-
-
-completeness_trait_data(x = traits_eu_cr[, .SD, .SDcols = patterns("volt|feed|resp|locom")],
-                        non_trait_cols =
-                          c("order",
-                            "family",
-                            "genus",
-                            "species"))
-  
-traits_eu_cr[order %in% c(
-  "Ephemeroptera",
-  "Hemiptera",
-  "Odonata",
-  "Trichoptera",
-  "Coleoptera",
-  "Plecoptera",
-  "Diptera",
-  "Megaloptera",
-  "Neuroptera"
-),]
-
-
+# TODO just return rows where for each trait there is an observation
 
 # save in list
 saveRDS(

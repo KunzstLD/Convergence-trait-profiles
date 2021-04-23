@@ -34,10 +34,11 @@ library(knitr)
 library(reactable)
 
 # Random Forest
-library(rsample)  # data splitting
-library(ranger)   # a fast c++ implementation of the random forest algorithm
-library(vip)      # visualize feature importance
-library(pdp)      # visualize feature effects
+library(mlr3)
+library(mlr3viz)
+library(mlr3learners)
+library(mlr3measures)
+library(mlr3tuning)
 library(caret)
 
 # Variable importance

@@ -27,51 +27,12 @@ disting_traits <-
                                              nr_families)], by = c("continent", "group", "trait"))
 disting_traits <- disting_traits[order(continent, group, -prop_taxa_high_aff), ] 
 
-# Tables for results part
-# library(knitr)
-# library(flextable)
-# trait_cols <- as.character(unique(disting_traits$trait))
-# path_tables <- "./Paper/Tables/Tables_convergence_tp.docx"
-# 
-# disting_traits_tv <-
-#   dcast(disting_traits[, .(continent, group, trait)],
-#         continent + group ~ trait,
-#         value.var = "trait")
-# imp_traits_wf <- disting_traits_tv[, apply(.SD, 1, function(y)
-#   paste(y[!is.na(y)], collapse = ", ")), .SDcols = trait_cols]
-# 
-# # Create table for word 
-# dcast(cbind(disting_traits_tv[, .(continent, group)],
-#       imp_traits_wf), 
-#       group ~ continent, 
-#       value.var = "imp_traits_wf") %>%
-#   flextable(.) %>%
-#   theme_vanilla(.) %>% 
-#   hline(.) %>% 
-#   set_caption("Traits expressed by the invertebrates clustered in the trait profile groups. Only 
-#       traits have been selected that more than 50 % of the families within a TPG express with an trait 
-#       affinity of at least 0.75.") %>% 
-#   save_as_docx(., path = path_tables)
-# 
-# # For Appendix
-# disting_traits[, perc_taxa_express_05 := ceiling(prop_taxa_high_aff*100)]
-# kable(
-#   dcast(
-#     data = disting_traits,
-#     formula = continent + group + nr_families  ~ trait,
-#     value.var = "perc_taxa_express_05",
-#     fill = NA
-#   ),
-#   format = "markdown"
-# )
-
 # Calculate nr of traits per tpg for upcoming comparisons
 disting_traits[, nr_traits_group := .N, by = .(continent, group)]
 
 # Are there similarities across continents?
 # A) between the clustered groups
 output_tpgs <- list()
-
 for(cont in c("AUS", "EU", "NOA", "NZ")) {
   groups <- unique(disting_traits[continent == cont, group])
   similar_tpgs <- list()

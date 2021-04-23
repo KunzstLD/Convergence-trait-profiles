@@ -66,6 +66,16 @@ reactable(
 
 ## Table 4
 
+Brier score for test and training data of the random forest models.
+
+```{r}
+
+perf_summary <- readRDS("/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/perf_summary.rds")
+
+```
+
+## Table 5
+
 ```{r, echo = FALSE}
 
 summary_cr_taxa <- readRDS("/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/Cache_comparison_climatic_reg/summary_cr_taxa.rds")

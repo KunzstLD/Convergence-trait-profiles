@@ -69,6 +69,10 @@ lookup_gf <- data.table(
   )
 )
 
+# __________________________________________________________________________________________________
+#### Extract global distances ####
+# __________________________________________________________________________________________________
+
 global_dist <- list()
 for (i in names(hc_output_ww)) {
   gf_intm <- data.table(
@@ -80,6 +84,7 @@ for (i in names(hc_output_ww)) {
 }
 saveRDS(object = global_dist,
         file = file.path(data_cache, "global_dist.rds"))
+
 
 # __________________________________________________________________________________________________
 #### Create plots ####
@@ -216,15 +221,15 @@ grouping_feature_names <- c(
   "7" = "TPG 7"
 )
 
-# plot
+# Plot TPGs and expressed traits
 fun_heatmap_single_cont(data = trait_AUS_lf)+
   ggtitle("TPGs AUS")
 ggplot2::ggsave(
   filename = file.path(data_paper,
                        "Graphs", 
                        "Heatmap_tpgs_AUS.png"),
-  width = 45,
-  height = 33,
+  width = 50,
+  height = 37,
   units = "cm"
 )
 
@@ -357,8 +362,8 @@ ggplot2::ggsave(
   filename = file.path(data_paper,
                        "Graphs", 
                        "Heatmap_tpgs_EU.png"),
-  width = 47,
-  height = 33,
+  width = 50,
+  height = 37,
   units = "cm"
 )
 
@@ -475,7 +480,7 @@ ggplot2::ggsave(
                        "Graphs",
                        "Heatmap_tpgs_NOA.png"),
   width = 50,
-  height = 33,
+  height = 37,
   units = "cm"
 )
 
@@ -596,8 +601,8 @@ ggplot2::ggsave(
   filename = file.path(data_paper,
                        "Graphs", 
                        "Heatmap_tpgs_NZ.png"),
-  width = 45,
-  height = 33,
+  width = 50,
+  height = 37,
   units = "cm"
 )
 
