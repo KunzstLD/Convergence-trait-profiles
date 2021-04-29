@@ -11,6 +11,13 @@ load_data <- function(path, pattern){
   data
 }
 
+# Helper function for dcast calls
+# Add to fun.aggregate argument for assigning a 1 to casted values when there length
+# is greater than 0
+fun_binary_length <- function(y) {
+  as.numeric(ifelse(length(y) == 0, 0, 1))
+}
+
 # In case for subsetting (currently only for one variable can be subsetted)
 subset_trait_data <- function(data, trait, trait_value){
   data  <- data[get(trait) == trait_value, ]

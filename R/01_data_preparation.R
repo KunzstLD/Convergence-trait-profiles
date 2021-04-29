@@ -37,7 +37,6 @@ lapply(
       "feed_filter",
       "feed_predator",
       "feed_herbivore",
-      "feed_parasite",
       "resp_teg",
       "resp_gil",
       "resp_pls_spi",
@@ -66,6 +65,9 @@ lapply(
 
 # Bind trait data
 trait_data_bind <- rbindlist(trait_data_ww, idcol = "continent")
+saveRDS(trait_data_bind,
+        file = file.path(data_cache,
+                         "trait_data_ww_bind.rds"))
 
 # Calculate nr of taxa & prop of orders
 trait_data_bind[, nr_taxa := .N, by = "continent"]
