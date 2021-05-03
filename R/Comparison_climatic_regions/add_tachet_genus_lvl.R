@@ -54,7 +54,7 @@ eu_glvl[traits_eu_cr,
 # Check for data on genus-lvl in tachet
 # and add where trait information is not available
 # size
-genera_size <- eu_glvl[is.na(temp_eury), genus]
+genera_size <- eu_glvl[is.na(size_small), genus]
 
 # voltinism
 genera_volt <- eu_glvl[is.na(volt_semi), genus]
@@ -128,16 +128,7 @@ eu_glvl[traits_EU[is.na(species) & taxa_adjusted %in% genera_ovip, ],
              ovip_ter = i.ovip_ter),
         on = c(genus = "taxa_adjusted")]
 
-# Nr observations per climateregion
-eu_glvl[, .N, by = climateregion]
-
-completeness_trait_data(x = eu_glvl[,.SD, .SDcols = patterns("size|feed|resp|locom|volt|temp|ovip")])
-
-na.omit(eu_glvl[, .SD, .SDcols = patterns("feed|temp|resp|volt|ovip|locom|climateregion|genus|family|order")]) 
-na.omit(eu_glvl[, .SD, .SDcols = patterns("feed|resp|climateregion|genus|family|order")]) %>% 
-  .[, .N, by = .(climateregion)]
-# ? size
-
+# _________________________________________________________________________
 # Load data from murria and check availability
 murria_traits <- readxl::read_excel(path = file.path(data_in, "murria_trait_table_cp.xlsx"))
 setDT(murria_traits)
@@ -150,12 +141,8 @@ genera_in_eu <- eu_glvl[genus %in% murria_traits$Genus, genus]
 # Harmonise & merge the missing trait information
 murria_subset <- murria_traits[Genus %in% genera_in_eu, ]
 
-# Taxa with feeeding mode other discarded (3)
-murria_subset <- murria_subset[OTHER == 0, ]
-
 # _________________________________________________________________________
 # Harmonize Murria's traits (?)
-# TODO: Check if providing SIZE information is actually enough 
 # (murria has no information on TEMP preference!)
 # _________________________________________________________________________
 # Size:
@@ -170,11 +157,11 @@ murria_subset[, size_small := apply(.SD, 1, max, na.rm = TRUE),
            "SIZE3"
          )
 ]
+setnames(murria_subset, "SIZE4", "size_medium")
 murria_subset[, size_large := apply(.SD, 1, max, na.rm = TRUE),
               .SDcols = c("SIZE5",
                           "SIZE6",
                           "SIZE7")]
-setnames(murria_subset, "SIZE4", "size_medium")
 murria_subset[, c("SIZE1",
                   "SIZE2",
                   "SIZE3",
@@ -197,16 +184,22 @@ murria_subset[, feed_filter := apply(.SD, 1, max, na.rm = TRUE),
 setnames(murria_subset,
          old = c("GAT",
                  "PRED",
-                 "PAR"),
-         new = c("feed_gather",
+                 "PAR",
+                 "GRA"),
+         new = c("feed_gatherer",
                  "feed_predator",
-                 "feed_parasite"),
+                 "feed_parasite",
+                 "feed_herbivore"),
          )
+
+# Taxa with feeeding mode other discarded (3)
+murria_subset <- murria_subset[OTHER == 0, ]
 murria_subset[, c("MIN",
                   "XYL",
                   "SHR",
                   "AFF",
-                  "PFF") := NULL]
+                  "PFF", 
+                  "OTHER") := NULL]
 # _________________________________________________________________________
 
 # Respiration
@@ -225,21 +218,168 @@ murria_subset[, c("SPIR",
 # _________________________________________________________________________
 
 # Locom
-
+murria_subset[, locom_swim := apply(.SD, 1, max, na.rm = TRUE),
+              .SDcols = c("SWIMM",
+                          "SURSWI")]
+murria_subset[, locom_burrow := apply(.SD, 1, max, na.rm = TRUE),
+              .SDcols = c("BURR",
+                          "INTST")]
+murria_subset[, locom_sessil := apply(.SD, 1, max, na.rm = TRUE),
+              .SDcols = c("PERATT",
+                          "TEMATT")]
+setnames(murria_subset,
+         "CRAW",
+         "locom_crawl")
+# No fliers, can also be deleted
+murria_subset[, c("SWIMM",
+                  "SURSWI",
+                  "BURR",
+                  "INTST",
+                  "PERATT",
+                  "TEMATT",
+                  "FLIER") := NULL]
 # _________________________________________________________________________
 
-# Volt 
-
-# _________________________________________________________________________
-
-# Temp
+# Volt
+setnames(murria_subset,
+         old = c("SEMIVO",
+                 "UNIVO",
+                 "PLURIVO"),
+         new = c("volt_semi",
+                 "volt_uni",
+                 "volt_bi_multi"))
 
 # _________________________________________________________________________
 
 # Ovip
+murria_subset[, ovip_aqu := apply(.SD, 1, max, na.rm = TRUE),
+         .SDcols = c(
+           "FREEGG",
+           "CEMEGG",
+           "CEMCLU",
+           "FRECLU",
+           "CLUVEG"
+         )
+]
+setnames(murria_subset,
+         old = c("OVOV", 
+                 "CLUTER"),
+         new = c("ovip_ovo",
+                 "ovip_ter"))
 
+murria_subset[, c("FREEGG",
+                  "CEMEGG",
+                  "CEMCLU",
+                  "FRECLU",
+                  "CLUVEG") := NULL]
+
+# Rearrange columns and select rel. columns
+newcolorder <- c(
+  "Group",
+  "Code",
+  "Family",
+  "Genus",
+  grep("feed", names(murria_subset), value = TRUE),
+  grep("resp", names(murria_subset), value = TRUE),
+  grep("volt", names(murria_subset), value = TRUE),
+  grep("locom", names(murria_subset), value = TRUE),
+  grep("ovip", names(murria_subset), value = TRUE),
+  "size_small",
+  "size_medium",
+  "size_large"
+)
+setcolorder(murria_subset, newcolorder)
+murria_subset <- murria_subset[, ..newcolorder]
 
 # Normalisation
+normalize_by_rowSum(
+  x = murria_subset,
+  non_trait_cols = c(
+    "Group",
+    "Code",
+    "Family",
+    "Genus"
+  )
+)
 
+# Merge to trait data 
+murria_subset
+eu_glvl
 
+# Same procedure as with Tachet traits
+# Merge for those genera with no information for a particular trait
+
+# size
+genera_size_up <- eu_glvl[is.na(size_small), genus]
+
+# voltinism
+genera_volt_up <- eu_glvl[is.na(volt_semi), genus]
+
+# feeding mode
+genera_feeding_up <- eu_glvl[is.na(feed_shredder), genus]
+
+# respiration
+genera_resp_up <- eu_glvl[is.na(resp_teg), genus]
+
+# locomotion
+genera_locom_up <- eu_glvl[is.na(locom_burrow), genus]
+
+# ovip
+genera_ovip_up <- eu_glvl[is.na(ovip_aqu), genus]
+
+# Add size from murria
+eu_glvl[murria_subset[Genus %in% genera_size_up, ],
+        `:=`(size_small = i.size_small,
+             size_medium = i.size_medium,
+             size_large = i.size_large),
+        on = c(genus = "Genus")]
+
+# Add voltinism from murria
+eu_glvl[murria_subset[Genus %in% genera_volt_up, ],
+        `:=`(volt_bi_multi = i.volt_bi_multi,
+             volt_uni = i.volt_uni,
+             volt_semi = i.volt_semi),
+        on = c(genus = "Genus")]
+
+# Add feeding mode from murria
+eu_glvl[murria_subset[Genus %in% genera_feeding_up, ],
+        `:=`(feed_shredder = i.feed_shredder,
+             feed_gatherer = i.feed_gatherer,
+             feed_predator = i.feed_predator,
+             feed_parasite = i.feed_parasite, 
+             feed_filter = i.feed_filter, 
+             feed_herbivore = i.feed_herbivore),
+        on = c(genus = "Genus")]
+
+# Add respiration from murria
+eu_glvl[murria_subset[Genus %in% genera_resp_up, ],
+        `:=`(resp_gil = i.resp_gil,
+             resp_teg = i.resp_teg,
+             resp_pls_spi = i.resp_pls_spi),
+        on = c(genus = "Genus")]
+
+# Add locomotion from murria
+eu_glvl[murria_subset[Genus %in% genera_locom_up, ],
+        `:=`(locom_burrow = i.locom_burrow,
+             locom_crawl = i.locom_crawl,
+             locom_sessil = i.locom_sessil,
+             locom_swim = i.locom_swim),
+        on = c(genus = "Genus")]
+
+# Add oviposition from Tachet
+eu_glvl[murria_subset[Genus %in% genera_ovip_up, ],
+        `:=`(ovip_aqu = i.ovip_aqu,
+             ovip_ovo = i.ovip_ovo,
+             ovip_ter = i.ovip_ter),
+        on = c(genus = "Genus")]
+
+# save
+saveRDS(
+  object = eu_glvl,
+  file = file.path(
+    data_cache,
+    "Cache_comparison_climatic_reg",
+    "eu_glvl_murria.rds"
+  )
+)
 
