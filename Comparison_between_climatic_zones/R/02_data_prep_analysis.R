@@ -36,6 +36,15 @@ trait_agg <- rbind(
   ]
 )
 
+# Save
+saveRDS(
+  object = trait_agg,
+  file = file.path(
+    data_cache,
+    "trait_agg_genus.rds"
+  )
+)
+
 # ---- Climateregion & taxon selection -----------------------------------------
 
 # Genera per climateregion
@@ -62,6 +71,8 @@ trait_agg[genus_cr[rel_distrib > 0.5, ],
   `:=`(climateregion = i.climateregion),
   on = "genus"
 ]
+
+trait_agg[, .N, by = "climateregion"]
 
 # ---- Preprocessing HC --------------------------------------------------------
 

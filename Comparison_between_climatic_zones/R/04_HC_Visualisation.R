@@ -7,40 +7,20 @@
 # TODO: Implement chord distance for fuzzy codes
 # ______________________________________________________________________________
 
-# load hc_output
+# Load hc_output
 hc_output <- readRDS(file.path(
   data_cache,
-  "hc_output_full.rds"
+  "hc_output_temperate.rds"
 ))
 
-hc_output_uq <- readRDS(file.path(
-  data_cache,
-  "hc_output_unique.rds"
-))
-
-# load preproc data
-preproc_data <- readRDS(file.path(
-  data_cache,
-  "preproc_data_full.rds"
-))
-
-preproc_data_uq <- readRDS(file.path(
-  data_cache,
-  "preproc_data_unique.rds"
-))
-
-# use switch to decide which data to use
-data_type <- "unique"
-data <- switch(data_type, "full" = preproc_data, "unique" = preproc_data_uq)
-
-# read orig. data for labels
+# Read orig. data for taxonomic and trait information
 trait_subsets <- readRDS(file.path(data_cache, "trait_subsets.rds"))
-trait_subsets_uq <- readRDS(file.path(data_cache, "trait_subsets_uq.rds"))
+trait_agg <- readRDS(file.path(data_cache, "trait_agg_genus.rds"))
 
-# ______________________________________________________________________________
+# ---- Dendrogram & distance matrices -----------------------------------------
 
 # extract distance matrices
-ls_dist_mat <- lapply(hc_output_uq, function(y) y[["distance_matrix"]])
+ls_dist_mat <- lapply(hc_output, function(y) y[["distance_matrix"]])
 
 # construct dendrogram and extract labels
 dend_output <- list()
@@ -56,18 +36,9 @@ for (i in names(ls_dist_mat)) {
     as.dendrogram() %>%
     labels()
 
-  # merge labels with species names
-  dend_label <-
-    merge(
-      data.frame(label = label),
-      trait_subsets[, c("species", "ID_AQEM")],
-      by.x = "label",
-      by.y = "ID_AQEM"
-    )
-
   # save output
   dend_output[[i]] <- list(
-    "dend_label" = dend_label,
+    "dend_label" = label,
     "hc_element" = hc_taxa
   )
 }
@@ -83,50 +54,52 @@ png(
   height = 1300,
   res = 100
 )
-dend_output[["temperate"]]$hc_element %>%
+dend_output$temperate$hc_element %>%
   as.dendrogram() %>%
-  color_branches(k = hc_output_uq[["temperate"]]$optimal_nog) %>%
+  color_branches(k = hc_output$temperate$optimal_nog) %>%
   hang.dendrogram(hang_height = -0.5) %>%
   set("labels_cex", 0.75) %>%
-#  dendextend::ladderize() %>%
-  set("labels", dend_output[["temperate"]]$dend_label$species) %>%
+  dendextend::ladderize() %>%
   plot(horiz = TRUE)
 dev.off()
 
-# TODO: Dendrogram with families as labels
-
-
-# ________________________________________________________
-#### Save clustered groups for further analysis ####
-# ________________________________________________________
+#---- Save clustered groups for further analysis -------------------------
 
 # get groups
-dend_taxa <- as.dendrogram(dend_output[["temperate"]]$hc_element)
+dend_taxa <- as.dendrogram(dend_output$temperate$hc_element)
 
 # grouping of taxa
 # PTODO: could merge cutree grouping
 data_cluster <-
   data.table(
-    ID_AQEM = names(cutree(dend_taxa,
-      k = hc_output[["temperate"]]$optimal_nog
+    genus = names(cutree(dend_taxa,
+      k = hc_output$temperate$optimal_nog
     )),
-    groups = cutree(dend_taxa, k = hc_output[["temperate"]]$optimal_nog)
-  ) %>%
-  .[, ID_AQEM := as.integer(ID_AQEM)]
+    group = cutree(dend_taxa, k = hc_output$temperate$optimal_nog)
+  )
 
 # merge back taxonomic and trait information
-cols <- grep("ID.*AQEM|species|genus|family|order|feed.*|
-resp.*|volt.*|locom.*|ovip.*|size.*|bf.*",
-  names(trait_subsets_uq),
+cols <- grep("genus|family|order|feed.*|resp.*|volt.*|locom.*|ovip.*",
+  names(trait_subsets),
   value = TRUE
 )
 
-data_cluster <-
-  merge(
-    data_cluster,
-    trait_subsets_uq[, ..cols],
-    by = "ID_AQEM"
+# add taxonomic information and traits
+data_cluster[trait_subsets,
+  `:=`(
+    family = i.family,
+    order = i.order
+  ),
+  on = "genus"
+]
+
+saveRDS(
+  object = data_cluster,
+  file = file.path(
+    data_cache,
+    "data_cluster_temperate.rds"
   )
+)
 
 # ________________________________________________________________
 #### Display traits as dendrogram & trait profiles as heatmap ####

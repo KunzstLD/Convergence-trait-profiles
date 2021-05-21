@@ -78,54 +78,54 @@ custom_pred <- function(object, newdata) {
 # creates distance matrix
 # calculates gap statistic and optimal number of groups
 # creates dendrogram and provides a data.table with clusters and labels
-meta_hclustering <- function(x) {
-  dist_mat <- decostand(x,
-    "norm",
-    na.rm = TRUE
-  ) %>%
-    vegdist(., "euclidean", na.rm = TRUE) %>%
-    as.matrix()
-
-  gap <- clusGap(
-    x = dist_mat,
-    FUN = mycluster_hc,
-    K.max = 15,
-    B = 500
-  )
-
-  optimal_nog <- maxSE(gap$Tab[, "gap"],
-    gap$Tab[, "SE.sim"],
-    method = "Tibs2001SEmax"
-  )
-
-  # create dendrogram and get labels
-  hc_taxa <- hclust(as.dist(dist_mat), method = "ward.D2")
-
-  # get dendrogram
-  dend_taxa <- as.dendrogram(hc_taxa)
-
-  # grouping of taxa
-  data_cluster <-
-    data.table(
-      family = names(cutree(dend_taxa,
-        k = optimal_nog
-      )),
-      groups = cutree(dend_taxa, k = optimal_nog)
-    )
-  # output
-  list(
-    "data_cluster" = data_cluster,
-    "hc_element" = hc_taxa,
-    "optimal_nog" = optimal_nog
-  )
-}
+# meta_hclustering <- function(x) {
+#   dist_mat <- decostand(x,
+#     "norm",
+#     na.rm = TRUE
+#   ) %>%
+#     vegdist(., "euclidean", na.rm = TRUE) %>%
+#     as.matrix()
+# 
+#   gap <- clusGap(
+#     x = dist_mat,
+#     FUN = mycluster_hc,
+#     K.max = 15,
+#     B = 500
+#   )
+# 
+#   optimal_nog <- maxSE(gap$Tab[, "gap"],
+#     gap$Tab[, "SE.sim"],
+#     method = "Tibs2001SEmax"
+#   )
+# 
+#   # create dendrogram and get labels
+#   hc_taxa <- hclust(as.dist(dist_mat), method = "ward.D2")
+# 
+#   # get dendrogram
+#   dend_taxa <- as.dendrogram(hc_taxa)
+# 
+#   # grouping of taxa
+#   data_cluster <-
+#     data.table(
+#       family = names(cutree(dend_taxa,
+#         k = optimal_nog
+#       )),
+#       groups = cutree(dend_taxa, k = optimal_nog)
+#     )
+#   # output
+#   list(
+#     "data_cluster" = data_cluster,
+#     "hc_element" = hc_taxa,
+#     "optimal_nog" = optimal_nog
+#   )
+# }
 
 #### Meta RF ####
 meta_rf <- function(train,
                     test) {
 
   # Number of features
-  n_features <- length(setdiff(names(train), "groups"))
+  n_features <- length(setdiff(names(train), "group"))
 
   # Grid for different hyperparameters
   hyper_grid <- expand.grid(
@@ -140,7 +140,7 @@ meta_rf <- function(train,
   for (j in seq_len(nrow(hyper_grid))) {
     # train model
     model <- ranger(
-      formula = groups ~ .,
+      formula = group ~ .,
       data = train,
       seed = 123,
       verbose = FALSE,
@@ -160,9 +160,9 @@ meta_rf <- function(train,
 
   # Re-run model with impurity-based variable importance
   m3_ranger_impurity <- ranger(
-    formula = groups ~ .,
+    formula = group ~ .,
     data = train,
-    num.trees = 100,
+    num.trees = 80,
     mtry = best_set$mtry,
     min.node.size = best_set$node_size,
     sample.fraction = best_set$sample_size,
@@ -173,9 +173,9 @@ meta_rf <- function(train,
 
   # Re-run model with permutation-based variable importance
   m3_ranger_permutation <- ranger(
-    formula = groups ~ .,
+    formula = group ~ .,
     data = train,
-    num.trees = 100,
+    num.trees = 80,
     mtry = best_set$mtry,
     min.node.size = best_set$node_size,
     sample.fraction = best_set$sample_size,
@@ -187,15 +187,15 @@ meta_rf <- function(train,
   # Predictions
   # Training data
   res_train <- predict(m3_ranger_impurity, train)
-  pred_train <- confusionMatrix(res_train$predictions, train$groups)
+  pred_train <- confusionMatrix(res_train$predictions, train$group)
 
   # Test data
   res_test <- predict(m3_ranger_impurity, test)
 
-  u <- union(res_test$predictions, test$groups)
+  u <- union(res_test$predictions, test$group)
   tab <- table(
     factor(res_test$predictions, u),
-    factor(test$groups, u)
+    factor(test$group, u)
   )
   pred_test <- confusionMatrix(tab)
 

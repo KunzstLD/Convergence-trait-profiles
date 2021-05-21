@@ -46,3 +46,21 @@ nad83.to.wgs@data[nad83.to.wgs@data$Unique_ID %in% c(225), ]
 ids <- nad27.to.wgs@data[, "Unique_ID"]
 setDT(genus_occ)
 all(genus_occ[Unique_ID %in% ids, "Longitude"] == nad27.to.wgs@data[, "Longitude"])
+
+
+#### Use new script from Luic! ####
+# read Conus_data_KoppenGeiger
+conus_kg <- fread(file.path(data_in, "NOA", "Conus_data_KoppenGeiger.csv"))
+
+
+# Q1) What is with the taxa that have no letter_code/full_description -> Ocean?
+conus_kg[is.na(Letter_code), ]
+
+conus_kg$Full_description %>% unique
+
+# Plausability check
+conus_kg[Full_description == "Arid_desert_cold", ]
+
+# Create major climate regions
+conus_kg[!is.na(Full_description), major_climate_regions := sub("(\\w)\\_.*","\\1",Full_description)]
+conus_kg[!duplicated(Genus), ]

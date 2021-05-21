@@ -15,7 +15,7 @@ data <- readRDS(file.path(
 hc_output <- list()
 
 set.seed(1234)
-for (i in c("temperate", "cold")) {
+for (i in c("temperate")) { # , "cold" 
 
   # Create dist. matrix
   # for now use Orloci's Chord distance
@@ -37,7 +37,7 @@ for (i in c("temperate", "cold")) {
   gap <- clusGap(
     x = dist_mat,
     FUN = mycluster_hc,
-    K.max = 3,
+    K.max = 10,
     B = 500
   )
 
@@ -59,6 +59,6 @@ saveRDS(
   object = hc_output,
   file = file.path(
     data_cache,
-    paste0("hc_output_", data_type, ".rds")
+    "hc_output_temperate.rds"
   )
 )

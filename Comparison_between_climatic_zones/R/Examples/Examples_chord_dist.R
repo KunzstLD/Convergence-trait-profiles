@@ -1,3 +1,6 @@
+library(dplyr)
+library(vegan)
+
 # Example data
 ex_trait <- data.frame(
   feed_shredder = c(0, NA, 0.7, 0),
@@ -46,7 +49,32 @@ dist_mat <- dist_mat/sqrt(2)
 dist_mat_zero <- decostand(ex_trait_zero, "norm", na.rm = TRUE) %>%
   vegdist(., "euclidean", na.rm = TRUE) %>%
   as.matrix()
-
 dist_mat_zero/sqrt(2)
 
-# Q: How can I figure out which variable contributes to the global distance?
+# Using ade4 dist functions!
+library(ade4)
+
+vec <- sub("\\_.*", "\\1", names(ex_trait))
+blocks <- rle(vec)$lengths
+ex_trait <- prep.fuzzy(ex_trait, blocks)
+ktab_ex_trait <- ktab.list.df(list(ex_trait))
+
+dist_by_ktab <- dist.ktab(ktab_ex_trait, type = "F")
+as.matrix(dist_by_ktab)
+
+# glocor gives correlations between distances obtained for each trait and the global distances
+# obtained by mixing all the traits (= contribution of traits to the global distances)
+kdist.cor(ktab_ex_trait, type = "F")
+
+
+
+
+data(bsetal97)
+
+w <- prep.fuzzy(bsetal97$biol, bsetal97$biol.blo)
+w[1:6, 1:10]
+ktab1 <- ktab.list.df(list(w))
+
+dis <- dist.ktab(ktab1, type = "F")
+kdist.cor(ktab1, type = "F")
+str(w)
