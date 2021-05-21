@@ -22,12 +22,12 @@ library(dplyr)
 library(data.table)
 library(Hmisc)
 library(zeallot)
-library(Hmisc)
 
 # Plotting
 library(ggplot2)
 library(dendextend) # for handling & plotting dendrograms
 library(patchwork)
+library(adegraphics)
 
 # Table outputs
 library(knitr)

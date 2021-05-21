@@ -71,9 +71,19 @@ saveRDS(trait_data_bind,
 
 # Calculate nr of taxa & prop of orders
 trait_data_bind[, nr_taxa := .N, by = "continent"]
-trait_data_bind[, prop_order := .N/nr_taxa, by = .(continent, order)]
+trait_data_bind[, prop_order := .N / nr_taxa, by = .(continent, order)]
 
-cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+cbbPalette <-
+  c(
+    "#000000",
+    "#E69F00",
+    "#56B4E9",
+    "#009E73",
+    "#F0E442",
+    "#0072B2",
+    "#D55E00",
+    "#CC79A7"
+  )
 ggplot(trait_data_bind, aes(x = as.factor(order),
                             y = prop_order * 100)) +
   geom_pointrange(aes(

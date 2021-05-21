@@ -119,7 +119,7 @@ names(inv_traits_dendlist) <- hclust_methods
 # Compare cophenetic correlation 
 # Cophenetic distance:
 # "distance (or similarity) level at which objects x 1 and x 2 become members of the same
-# cluster during the course of clustering.22"
+# cluster during the course of clustering"
 cophenetic_cors <- cor.dendlist(inv_traits_dendlist)
 corrplot::corrplot(cophenetic_cors, "pie", "lower")
 

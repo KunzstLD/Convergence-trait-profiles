@@ -1,5 +1,6 @@
 # Loading data
 genus_occ <- fread(file.path(data_in, "Genus_Occurrences.csv"))
+unique(genus_occ$Genus)
 
 # Identifying the different CRS
 unique(genus_occ$Horizontal_datum)

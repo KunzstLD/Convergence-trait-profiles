@@ -132,16 +132,16 @@ for(region in names(trait_dat_cp)) {
 }
 
 # Get optimal param. values and associated mbrier score
-ls_instance$AUS$archive$data[order(classif.mbrier),][1,]
-ls_instance$EU$archive$data[order(classif.mbrier),][1,]
-ls_instance$NOA$archive$data[order(classif.mbrier),][1,]
-ls_instance$NZ$archive$data[order(classif.mbrier),][1,]
-# instance$result_learner_param_vals
+# ls_instance$AUS$archive$data[order(classif.mbrier),][1,]
+# ls_instance$EU$archive$data[order(classif.mbrier),][1,]
+# ls_instance$NOA$archive$data[order(classif.mbrier),][1,]
+# ls_instance$NZ$archive$data[order(classif.mbrier),][1,]
 
 # Inspect prediction re mbrier score
 scores_test
 scores_train
 
+# save
 scores_test <- do.call(rbind, scores_test) %>%
   as.data.frame()
 names(scores_test)[names(scores_test) == "classif.mbrier"] <- "mbrier_score_test"

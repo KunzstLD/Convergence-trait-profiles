@@ -63,14 +63,18 @@ lapply(output_tpgs, function(y)
   lapply(y, function(z)
     z[length(unique(continent)) == 4,]))
 
+
 # 1.1) Distinguish low and high affinities?
 # 1.2) Pilliere found differences within orders (e.g. Ephemeroptera) 
 # -> something worth to check out
 disting_traits[trait %in% c("locom_crawl", "ovip_aqu", "bf_cylindrical", "resp_gil"), ] %>% 
   .[order(continent, group), ]
 
-# Get tpgs and plot in single heatmaps
+#___________________________________________________________________________________________________
+#### TPGs that occur in all continents ####
+# Plot in single heatmaps
 # Add Order information in separate barchart
+#___________________________________________________________________________________________________
 
 #*****************************************************************
 # TPG 1 that occurs in all continents
@@ -202,11 +206,11 @@ tpg_acr_cont_2[, trait := factor(
     "feed_predator",
     "bf_cylindrical",
     "locom_crawl",
-    "resp_gil",
-    "size_medium",
     "locom_swim",
+    "resp_gil",
     "resp_pls_spi",
-    "size_small"
+    "size_small",
+    "size_medium"
   )
 )]
 tpg_acr_cont_2[, continent := factor(continent,
@@ -368,6 +372,20 @@ ggplot2::ggsave(
   height = 31,
   units = "cm"
 )
+
+#### Groups with terrestrial oviposition ####
+unique(trait_CONT[(continent == "EU" & group == 1 & prop_taxa_high_aff >= 0.5), trait])
+unique(trait_CONT[(continent == "AUS" & group == 4 & prop_taxa_high_aff >= 0.6), trait])
+unique(trait_CONT[(continent == "AUS" & group == 5 & prop_taxa_high_aff >= 0.5), trait])
+unique(trait_CONT[(continent == "NOA" & group == 2 & prop_taxa_high_aff >= 0.45), trait])
+
+trait_CONT[(continent == "NOA" & group == 2 & prop_taxa_high_aff >= 0.45), ]
+trait_CONT[(continent == "EU" & group == 1 & prop_taxa_high_aff >= 0.5), ]
+# NOA & EU: locom_crawl, ovip_ter, size_small, volt_uni 
+# AUS, two groups: ovip_ter, feed_predator, size_large (volt_bi_multi)
+
+
+
 
 # B) In terms of grouping features contributing to the global distance
 # What does the value exactly mean?

@@ -36,55 +36,38 @@ reactable(global_dist[, .(continent, grouping_feature, global_dist = round(`glob
 
 ## Table 3
 
-Five most important traits to distinguish TPGs for each continent. After the initial run the highest ranking variable has been removed and a random forest has been fitted again. This procedure has been repeated 4 times. Training error and test error for the fitted random forest are shown in the last two columns.
+Multi-category brier (mBrier) score of the test and training data for the fitted random forest models. 
 
 ```{r, echo = FALSE}
+brier_scores <- readRDS("/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/perf_summary.rds")
 
-rf_vimp <- readRDS("/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/rf_vimp.rds")
 reactable(
-  rf_vimp[, .(
+  brier_scores[, .(
     continent,
-    five_most_important_traits,
-    run,
-    test_error = round(test_error, digits = 2),
-    train_error = round(train_error, digits = 2)
+    mbrier_score_test = round(mbrier_score_test, digits = 2),
+    mbrier_score_train = round(mbrier_score_train, digits = 2)
   )],
   columns = list(
     continent = colDef(name = "Continent",
                        width = 120),
-    five_most_important_traits = colDef(name = "Five most important traits",
-                                        width = 300),
-    run = colDef(name = "Run",
-                 width = 250),
-    test_error = colDef(name = "Test error"),
-    train_error = colDef(name = "Train error")
-  ), 
-  filterable = TRUE,
-  highlight = TRUE
+    mbrier_score_test = colDef(name = "mBrier score test data"),
+    mbrier_score_train = colDef(name = "mBrier score training data")
+  )
 )
+
 ```
 
 ## Table 4
 
-Brier score for test and training data of the random forest models.
-
-```{r}
-
-perf_summary <- readRDS("/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/perf_summary.rds")
-
-```
-
-## Table 5
-
 ```{r, echo = FALSE}
 
-summary_cr_taxa <- readRDS("/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/Cache_comparison_climatic_reg/summary_cr_taxa.rds")
-
-reactable(
-  summary_cr_taxa,
-  highlight = TRUE, 
-  columns = list(
-    `Nr. Taxa EU` = colDef(name = "Nr. Taxa EU (mostly species lvl)"),
-    `Nr. Taxa NOA` = colDef(name = "Nr. Taxa NOA (genus lvl)")
-  ))
+# summary_cr_taxa <- readRDS("/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/Cache_comparison_climatic_reg/summary_cr_taxa.rds")
+# 
+# reactable(
+#   summary_cr_taxa,
+#   highlight = TRUE,
+#   columns = list(
+#     `Nr. Taxa EU` = colDef(name = "Nr. Taxa EU (mostly species lvl)"),
+#     `Nr. Taxa NOA` = colDef(name = "Nr. Taxa NOA (genus lvl)")
+#   ))
 ```
