@@ -25,7 +25,7 @@ trait_dat <- list(
   "NZ" = trait_NZ
 )
 
-# Check distribution within groups
+# Check distribution within groups (familie richness)
 obs_group <- lapply(trait_dat, function(y) y[, .N, by = group])
 obs_group <- rbindlist(obs_group, idcol = "continent")  
 obs_group[, group := factor(group, levels = c(1:10))]
@@ -156,33 +156,10 @@ setcolorder(perf_summary,
 saveRDS(perf_summary, file.path(data_cache, "perf_summary.rds"))
 
 # Most important variables
-lapply(most_imp_vars, function(y) as.data.frame(y)) %>% 
+most_imp_vars <- lapply(most_imp_vars, function(y) as.data.frame(y)) %>% 
   do.call(rbind, .)
-       
+saveRDS(most_imp_vars, file = file.path(data_cache, "most_imp_vars.rds"))
 
-ggplot(rf_vimp, aes(x = reorder(as.factor(traits), value),
-                    y = value)) +
-  geom_point() +
-  facet_grid(. ~ as.factor(continent)) +
-  theme_bw() +
-  theme(
-    axis.title = element_text(size = 16),
-    axis.text.x = element_text(
-      family = "Roboto Mono",
-      size = 14,
-      angle = 90,
-      hjust = 1
-    ),
-    axis.text.y = element_text(family = "Roboto Mono",
-                               size = 14),
-    legend.title = element_text(family = "Roboto Mono",
-                                size = 16),
-    legend.text = element_text(family = "Roboto Mono",
-                               size = 14),
-    strip.text = element_text(family = "Roboto Mono",
-                              size = 14),
-    panel.grid = element_blank()
-  )
 
 # --- Variable selection with wrapper algorithm Boruta ---------------------------------------------
 output <- list()
@@ -197,6 +174,8 @@ for (region in c("AUS", "EU", "NOA", "NZ")) {
 
 # TODO: show values of all iterations
 boruta_res <- lapply(output, attStats)
+saveRDS(boruta_res, 
+        file = file.path(data_cache, "boruta_res.rds"))
 
 for(region in names(boruta_res)) {
   plot <- fun_boruta_results(data = boruta_res[[region]]) +

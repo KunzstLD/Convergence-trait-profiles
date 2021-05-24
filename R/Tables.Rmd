@@ -16,8 +16,7 @@ library(reactable)
 library(htmltools)
 ```
 
-## Table 2
-
+## Table 2:
 Contribution of grouping features to the global distances.
 
 ```{r, echo = FALSE}
@@ -28,14 +27,67 @@ global_dist <- rbindlist(global_dist, idcol = "continent")
 reactable(global_dist[, .(continent, grouping_feature, global_dist = round(`global distance`, digits = 2))],
           columns = list(continent = colDef(name = "Continent"), 
                          grouping_feature = colDef(name = "Grouping feature"),
-                         global_dist = colDef(name = "Global distance",
+                         global_dist = colDef(name = "Total distance",
                                               align = "center")), 
           filterable = TRUE,
           highlight = TRUE)
 ```
 
-## Table 3
 
+
+## Table 3: 
+Most important traits according to the permutation importance from the random forest models and according to the selection by the Boruta algorithm.
+
+```{r, echo = FALSE}
+# TODO whole boruta for SI
+
+# rf permutation importance
+most_imp_vars <- readRDS("/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/most_imp_vars.rds")
+
+continents <- sub("([A-Z]{2,})(\\.)(.+)", "\\1", rownames(most_imp_vars))
+most_imp_vars$continents <- continents
+most_imp_vars$traits <- rownames(most_imp_vars)
+setDT(most_imp_vars)
+most_imp_vars[, traits := sub("([A-Z]{2,})(\\.)(.+)", "\\3", traits)]
+miv_pub <-
+  most_imp_vars[order(continents, -y), .(pi_score = head(y, n = 5),
+                                         traits_perm_imp = head(traits, n = 5)),
+                by = continents] 
+
+# boruta
+boruta_res <-
+  readRDS(
+    "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/boruta_res.rds"
+  )
+boruta_res <- do.call(rbind, boruta_res)
+continents <- sub("([A-Z]{2,})(\\.)(.+)", "\\1", rownames(boruta_res))
+boruta_res$continents <- continents
+boruta_res$traits <- rownames(boruta_res)
+setDT(boruta_res)
+boruta_res[, traits_boruta := sub("([A-Z]{2,})(\\.)(.+)", "\\3", traits)]
+boruta_res <- boruta_res[order(continents, -meanImp), ]
+
+miv_boruta <- boruta_res[, .(traits_boruta = head(traits_boruta, n = 5)), by = continents]
+
+reactable(
+  miv_pub[, .(
+    continents, 
+    traits_perm_imp,
+    traits_boruta = miv_boruta$traits_boruta
+  )],
+  columns = list(
+    continents = colDef(name = "Continent",
+                       width = 120),
+    traits_perm_imp = colDef(name = "Most important traits permutation importance"),
+    traits_boruta = colDef(name = "Most important traits boruta")
+  ),
+  filterable = TRUE,
+  highlight = TRUE
+)
+
+```
+
+## Table 4:
 Multi-category brier (mBrier) score of the test and training data for the fitted random forest models. 
 
 ```{r, echo = FALSE}
@@ -57,7 +109,6 @@ reactable(
 
 ```
 
-## Table 4
 
 ```{r, echo = FALSE}
 
