@@ -63,7 +63,6 @@ lapply(output_tpgs, function(y)
   lapply(y, function(z)
     z[length(unique(continent)) == 4,]))
 
-
 # 1.1) Distinguish low and high affinities?
 # 1.2) Pilliere found differences within orders (e.g. Ephemeroptera) 
 # -> something worth to check out
@@ -101,13 +100,13 @@ tpg_acr_cont[, continent := paste0(continent, "_", group)]
 tpg_acr_cont[, trait := factor(
   trait,
   levels = c(
+    "size_medium",
+    "feed_predator",
+    "volt_uni",
     "locom_crawl",
     "ovip_aqu",
     "bf_cylindrical",
-    "resp_gil",
-    "size_medium",
-    "feed_predator",
-    "volt_uni"
+    "resp_gil"
   )
 )]
 tpg_acr_cont$continent %>% unique
@@ -119,19 +118,27 @@ tpg_acr_cont[, continent := factor(continent,
                                               "NZ_8"))]
 
 # Heatmap
-conv_gr1 <- fun_heatmap_tpg(data = tpg_acr_cont)
+tpg_names1 <- c(
+  "AUS_1" = "AUS1_TPG",
+  "AUS_2" = "AUS2_TPG",
+  "EU_7" = "EU7_TPG",
+  "NOA_4" = "NA4_TPG",
+  "NZ_8" = "NZ8_TPG"
+)
+conv_gr1 <- fun_heatmap_tpg(data = tpg_acr_cont,
+                            facet_names = tpg_names1)
 conv_gr1 <- conv_gr1 +
   annotate(
-    xmin = 0.5,
-    xmax = 4.5,
-    ymin = -Inf,
-    ymax = Inf,
+    xmin = -Inf,
+    xmax = Inf,
+    ymin = 3.5,
+    ymax = 7.5,
     geom = "rect",
     alpha = 0.1,
     color = "darkorange",
     size = 2.1
-  ) 
-  # +
+  )
+# +
   # ggtitle("TPG A that occurred in all continents")
 
 # Add order information
@@ -142,16 +149,18 @@ orders_conv_gr1 <- ggplot(tpg_acr_cont_uq, aes(x = as.factor(order),
                                                y = prop_order * 100)) +
   geom_pointrange(aes(ymin = 0,
                       ymax = prop_order * 100)) +
-  facet_grid(continent ~ .) +
+  facet_grid(. ~ continent,
+             labeller = as_labeller(tpg_names1)) +
   labs(x = "Order", y = "Percentage per TPG") +
   theme_bw() +
   theme(
-    axis.title = element_text(size = 16),
+    axis.title = element_text(size = 18),
     axis.text.x = element_text(
       family = "Roboto Mono",
-      size = 14,
-      angle = 45,
-      hjust = 1
+      size = 16,
+      angle = 90,
+      hjust = 1,
+      vjust = 0.2
     ),
     axis.text.y = element_text(family = "Roboto Mono",
                                size = 14),
@@ -163,7 +172,7 @@ orders_conv_gr1 <- ggplot(tpg_acr_cont_uq, aes(x = as.factor(order),
                               size = 14),
     panel.grid = element_blank()
   )
-conv_gr1 + orders_conv_gr1 + plot_annotation(tag_levels = "I")
+conv_gr1 / orders_conv_gr1 + plot_annotation(tag_levels = "I")
 ggplot2::ggsave(
   filename = file.path(data_paper,
                        "Graphs", 
@@ -201,16 +210,16 @@ tpg_acr_cont_2[, continent := paste0(continent, "_", group)]
 tpg_acr_cont_2[, trait := factor(
   trait,
   levels = c(
-    "ovip_aqu",
-    "volt_uni",
-    "feed_predator",
     "bf_cylindrical",
     "locom_crawl",
     "locom_swim",
     "resp_gil",
     "resp_pls_spi",
     "size_small",
-    "size_medium"
+    "size_medium",
+    "ovip_aqu",
+    "volt_uni",
+    "feed_predator"
   )
 )]
 tpg_acr_cont_2[, continent := factor(continent,
@@ -221,14 +230,24 @@ tpg_acr_cont_2[, continent := factor(continent,
                                                 "NOA_3",
                                                 "NZ_8"))]
 
+# plot
 # NZ group 6; AUS group 4 also occur in TPG1 
-conv_gr2 <- fun_heatmap_tpg(data = tpg_acr_cont_2)
+tpg_names2 <- c(
+  "AUS_1" = "AUS1_TPG",
+  "EU_6" = "EU6_TPG",
+  "EU_8" = "EU8_TPG",
+  "EU_9" = "EU9_TPG",
+  "NOA_3" = "NA3_TPG",
+  "NZ_8" = "NZ8_TPG"
+)
+conv_gr2 <- fun_heatmap_tpg(data = tpg_acr_cont_2,
+                            facet_names = tpg_names2)
 conv_gr2 <- conv_gr2 +
   annotate(
-    xmin = 0.5,
-    xmax = 3.5,
-    ymin = -Inf,
-    ymax = Inf,
+    xmin = -Inf,
+    xmax = Inf,
+    ymin = 7.5,
+    ymax = 10.5,
     geom = "rect",
     alpha = 0.1,
     color = "darkorange",
@@ -244,16 +263,18 @@ orders_conv_gr2 <- ggplot(tpg_acr_cont_uq2, aes(x = as.factor(order),
                                                y = prop_order * 100)) +
   geom_pointrange(aes(ymin = 0,
                       ymax = prop_order * 100)) +
-  facet_grid(continent ~ .) +
+  facet_grid(. ~ continent,
+             labeller = as_labeller(tpg_names2)) +
   labs(x = "Order", y = "Percentage per TPG") +
   theme_bw() +
   theme(
-    axis.title = element_text(size = 16),
+    axis.title = element_text(size = 18),
     axis.text.x = element_text(
       family = "Roboto Mono",
-      size = 14,
-      angle = 45,
-      hjust = 1
+      size = 16,
+      angle = 90,
+      hjust = 1,
+      vjust = 0.2
     ),
     axis.text.y = element_text(family = "Roboto Mono",
                                size = 14),
@@ -265,7 +286,7 @@ orders_conv_gr2 <- ggplot(tpg_acr_cont_uq2, aes(x = as.factor(order),
                               size = 14),
     panel.grid = element_blank()
   )
-conv_gr2 + orders_conv_gr2 + plot_annotation(tag_levels = "I")
+conv_gr2 / orders_conv_gr2 + plot_annotation(tag_levels = "I")
 ggplot2::ggsave(
   filename = file.path(data_paper,
                        "Graphs", 
@@ -287,7 +308,6 @@ tpg3_traits <- c(
   "volt_uni",
   "resp_pls_spi"
 )
-
 tpg_acr_cont_3 <-
   trait_CONT[trait %in% tpg3_traits & (
     (continent == "AUS" & group == 6) |
@@ -301,13 +321,13 @@ tpg_acr_cont_3[, continent := paste0(continent, "_", group)]
 tpg_acr_cont_3[, trait := factor(
   trait,
   levels = c(
-    "size_small",
-    "ovip_aqu",
-    "bf_cylindrical",
     "locom_crawl",
     "feed_herbivore",
     "volt_uni",
-    "resp_pls_spi"
+    "resp_pls_spi",
+    "size_small",
+    "ovip_aqu",
+    "bf_cylindrical"
     )
 )]
 tpg_acr_cont_3[, continent := factor(continent,
@@ -320,13 +340,23 @@ tpg_acr_cont_3[, continent := factor(continent,
                                                 "NZ_3"))]
 
 # NZ group 6; AUS group 4 also occur in TPG1 
-conv_gr3 <- fun_heatmap_tpg(data = tpg_acr_cont_3)
+tpg_names3 <- c(
+  "AUS_6" = "AUS6_TPG",
+  "EU_2" = "EU2_TPG",
+  "EU_3" = "EU3_TPG",
+  "NOA_1" = "NA1_TPG",
+  "NZ_1" = "NZ1_TPG",
+  "NZ_2" = "NZ2_TPG",
+  "NZ_3" = "NZ3_TPG"
+)
+conv_gr3 <- fun_heatmap_tpg(data = tpg_acr_cont_3,
+                            facet_names = tpg_names3)
 conv_gr3 <- conv_gr3 +
   annotate(
-    xmin = 0.5,
-    xmax = 3.5,
-    ymin = -Inf,
-    ymax = Inf,
+    xmin = -Inf,
+    xmax = Inf,
+    ymin = 4.5,
+    ymax = 7.5,
     geom = "rect",
     alpha = 0.1,
     color = "darkorange",
@@ -342,16 +372,18 @@ orders_conv_gr3 <- ggplot(tpg_acr_cont_uq3, aes(x = as.factor(order),
                                                 y = prop_order * 100)) +
   geom_pointrange(aes(ymin = 0,
                       ymax = prop_order * 100)) +
-  facet_grid(continent ~ .) +
+  facet_grid(. ~ continent,
+             labeller = as_labeller(tpg_names3)) +
   labs(x = "Order", y = "Percentage per TPG") +
   theme_bw() +
   theme(
-    axis.title = element_text(size = 16),
+    axis.title = element_text(size = 18),
     axis.text.x = element_text(
       family = "Roboto Mono",
-      size = 14,
-      angle = 45,
-      hjust = 1
+      size = 16,
+      angle = 90,
+      hjust = 1,
+      vjust = 0.2
     ),
     axis.text.y = element_text(family = "Roboto Mono",
                                size = 14),
@@ -363,21 +395,35 @@ orders_conv_gr3 <- ggplot(tpg_acr_cont_uq3, aes(x = as.factor(order),
                               size = 14),
     panel.grid = element_blank()
   )
-conv_gr3 + orders_conv_gr3 + plot_annotation(tag_levels = "I")
+conv_gr3 / orders_conv_gr3 + plot_annotation(tag_levels = "I")
 ggplot2::ggsave(
   filename = file.path(data_paper,
                        "Graphs", 
                        "Heatmap_TPG3_across_all_continents.png"),
-  width = 35,
+  width = 42,
   height = 31,
   units = "cm"
 )
 
+#*****************************************************************
 #### Groups with terrestrial oviposition ####
-unique(trait_CONT[(continent == "EU" & group == 1 & prop_taxa_high_aff >= 0.5), trait])
-unique(trait_CONT[(continent == "AUS" & group == 4 & prop_taxa_high_aff >= 0.6), trait])
-unique(trait_CONT[(continent == "AUS" & group == 5 & prop_taxa_high_aff >= 0.5), trait])
-unique(trait_CONT[(continent == "NOA" & group == 2 & prop_taxa_high_aff >= 0.45), trait])
+#*****************************************************************
+
+groups_ter_ovip <- rbind(
+  unique(trait_CONT[(continent == "EU" &
+                       group == 1 &
+                       prop_taxa_high_aff >= 0.5), .(trait, continent, group)]),
+  unique(trait_CONT[(continent == "AUS" &
+                       group == 4 &
+                       prop_taxa_high_aff >= 0.6), .(trait, continent, group)]),
+  unique(trait_CONT[(continent == "AUS" &
+                       group == 5 &
+                       prop_taxa_high_aff >= 0.5), .(trait, continent, group)]),
+  unique(trait_CONT[(continent == "NOA" &
+                       group == 2 &
+                       prop_taxa_high_aff >= 0.45), .(trait, continent, group)])
+)
+groups_ter_ovip[duplicated(trait) | duplicated(trait, fromLast = TRUE), ]
 
 trait_CONT[(continent == "NOA" & group == 2 & prop_taxa_high_aff >= 0.45), ]
 trait_CONT[(continent == "EU" & group == 1 & prop_taxa_high_aff >= 0.5), ]

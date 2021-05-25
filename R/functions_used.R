@@ -318,27 +318,30 @@ fun_heatmap_single_cont <- function(data) {
 }
 
 # Plotting function for tpg that occur across the tested continents
-fun_heatmap_tpg <- function(data) {
-  ggplot(data, aes(x = trait,
-                   y = family,
+fun_heatmap_tpg <- function(data,
+                            facet_names) {
+  ggplot(data, aes(x = family,
+                   y = trait,
                    fill = affinity)) +
     geom_tile() +
-    facet_grid(continent ~ .,
+    facet_grid(. ~ continent,
                scales = "free",
-               space = "free") +
+               space = "free",
+               labeller = as_labeller(facet_names)) +
     scale_fill_gradient(name = "Trait affinity",
                         low = "#FFFFF1",
                         high = "#012345") +
     labs(x = "Trait", y = "Family") +
     theme_bw() +
     theme(
-      axis.title = element_text(size = 16),
+      axis.title = element_text(size = 18),
       axis.text.x = element_text(
         family = "Roboto Mono",
-        size = 14,
-        angle = 45,
-        hjust = 1
-      ),
+        size = 16,
+        angle = 90,
+        hjust = 1,
+        vjust = 0.2
+        ),
       axis.text.y = element_text(family = "Roboto Mono",
                                  size = 14),
       legend.title = element_text(family = "Roboto Mono",

@@ -30,12 +30,14 @@ blocks <- rle(vec)$lengths
 trait_data_bind <- prep.fuzzy(trait_data_bind, blocks)
 trait_data_bind <- ktab.list.df(list(trait_data_bind))
 comb_dist <- dist.ktab(trait_data_bind, type = "F")
+is.euclid(comb_dist)
 
 # PcOA
 comb_pcoa <- dudi.pco(comb_dist, scannf = FALSE)
 summary(comb_pcoa)
 
 # Factor map with colors for the different continents
+s.label(comb_pcoa$li, clabel = 0.7) # Fig. 2 in the main text
 s.class(comb_pcoa$li,
   fac = continent_names,
   col = TRUE
@@ -126,7 +128,7 @@ ggsave(
 )
 
 # __________________________________________________________________________________________________
-#### PERMANOVA
+#### PERMANOVA ####
 # __________________________________________________________________________________________________
 comb_perm <- adonis(comb_dist ~ continent_names,
   strata = continent_names

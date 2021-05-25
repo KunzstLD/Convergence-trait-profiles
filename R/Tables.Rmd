@@ -27,7 +27,7 @@ global_dist <- rbindlist(global_dist, idcol = "continent")
 reactable(global_dist[, .(continent, grouping_feature, global_dist = round(`global distance`, digits = 2))],
           columns = list(continent = colDef(name = "Continent"), 
                          grouping_feature = colDef(name = "Grouping feature"),
-                         global_dist = colDef(name = "Total distance",
+                         global_dist = colDef(name = "Correlation with total distance",
                                               align = "center")), 
           filterable = TRUE,
           highlight = TRUE)
@@ -79,7 +79,7 @@ reactable(
     continents = colDef(name = "Continent",
                        width = 120),
     traits_perm_imp = colDef(name = "Most important traits permutation importance"),
-    traits_boruta = colDef(name = "Most important traits boruta")
+    traits_boruta = colDef(name = "Most important traits Boruta")
   ),
   filterable = TRUE,
   highlight = TRUE
