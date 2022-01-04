@@ -25,6 +25,7 @@ library(zeallot)
 
 # Plotting
 library(ggplot2)
+library(ggsci)
 library(dendextend) # for handling & plotting dendrograms
 library(patchwork)
 library(adegraphics)
@@ -50,6 +51,7 @@ library(FD)
 library(vegan)
 library(ade4)
 library(vegan)
+library(coRanking)
 
 # Spatial operations
 library(sf)

@@ -1,0 +1,255 @@
+---
+title: "Tables convergence trait profiles - Functional space, TPGs, and most important traits"
+output: html_document
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Paper/Tables/") })
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo = FALSE, message = FALSE}
+# Set up
+library(data.table)
+library(dplyr)
+library(reactable)
+library(htmltools)
+```
+
+# Spread in functional space
+
+## Table 5
+
+Average distance values to the group centroids indicated by the analysis of multivariate homogeneity of group dispersions.
+
+```{r, echo = FALSE}
+bd_comb <- readRDS("/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/betadisper_continental.rds")
+
+bd_res <- data.table(distances = bd_comb$distances,
+           id = names(bd_comb$distances))
+bd_res[, continent := sub("(\\w)(\\_)(.+)", "\\1", id)]
+bd_res[, av_distance_to_median := round(mean(distances), digits = 2), 
+       by = continent]
+reactable(unique(bd_res[, .(continent, av_distance_to_median)]),
+          columns = list(
+            continent = colDef(name = "Continent",
+                               width = 100),
+            av_distance_to_median = colDef(name = "Average distance to median")
+          ))
+```
+
+# Similarities of TPGs across the continental trait datasets
+
+## Table 6
+
+Summary of the defining traits for each delineated TPG based on the criterion that more than 50 % of the families within a TPG expressed a trait with an affinity \> 0.5. TPGs with the trait combination *crawling, aquatic oviposition and cylindrical body form*, which occured in TPGs across all continents, are highlighted in blue. When dropping the threshold for our criterion on a defining trait to 40 % of families that should express a certain trait with an affinity \> 0.5 within a given TPG the trait combination *small size, feeding mode predator, and respiration with plastron and spiracle* also were defining traits in TPGs across all continents (AUS_TPG5, EU_TPG1, EU_TPG2, NA_TPG3, NZ_TPG5).
+
+```{r, echo = FALSE}
+def_traits <-
+  readRDS(
+    "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/def_traits.rds"
+  )
+# def_traits_40 <- readRDS("/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/def_traits_40_percent.rds")
+
+def_traits <- unique(def_traits[, .(continent, group, def_traits)])
+def_traits[, id := paste0(continent, "_", group)]
+# def_traits_40 <-
+#   unique(def_traits_40[, .(continent, group, def_traits)])
+# def_traits_40[, id := paste0(continent, "_", group)]
+
+# get groups that contain first pattern that was observed across all continents
+# sim_tpgs <-
+#   unique(def_traits[, .(continent, group, def_traits)]) %>%
+#   .[grepl("(?=.*cylindrical)(?=.*aqu)(?=.*crawl)", def_traits, perl = TRUE), paste0(continent, "_", group)]
+# 
+# sim_tpgs_40 <-
+#   unique(def_traits_40[, .(continent, group, def_traits)]) %>%
+#   .[grepl("(?=.*small)(?=.*predator)(?=.*spi.*)", def_traits, perl = TRUE), paste0(continent, "_", group)]
+reactable(
+  def_traits[, .(continent, group, def_traits)],
+  columns = list(
+    continent = colDef(name = "Continent", width = 100),
+    group = colDef(name = "TPG", width = 60),
+    def_traits = colDef(
+      name = "Defining traits",
+      style = function(value) {
+        if (grepl("(?=.*cylindrical)(?=.*aqu)(?=.*crawl)", value, perl = TRUE)) {
+          list(background = "steelblue")
+        }
+        # else if (grepl("(?=.*small)(?=.*predator)(?=.*spi.*)", value, perl = TRUE)) {
+        #   list(color = "forestgreen", fontWeight = "bold")
+        # }
+      }
+    )
+  ),
+  filterable = TRUE,
+  highlight = TRUE,
+  defaultPageSize = 33
+)
+
+```
+
+## Table 7
+
+Affinities of the defining traits for each delineated TPG based on the criterion that more than 50 % of the families within a TPG expressed a trait with an affinity \> 0.5. Some traits are not displayed (e.g. body form spherical) because these traits were not characteristic of any TPG.
+
+```{r, echo = FALSE}
+def_traits_full <-
+  readRDS(
+    "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/def_traits_full.rds"
+  )
+
+# 50 % of taxa with an affinity > 0.5
+def_traits_full <- def_traits_full[prop_taxa_high_aff >= 0.5 ]
+
+# wide format version (might use this in the future)
+# dcast(
+#   def_traits_full,
+#   continent + family + order + group + nr_families + prop_taxa_high_aff ~ trait,
+#   value.var = "affinity"
+# )
+
+reactable(
+  def_traits_full[order(continent, group), .(
+    continent,
+    group,
+    family,
+    order,
+    trait,
+    prop_taxa_high_aff = round(prop_taxa_high_aff, digits = 2),
+    affinity = round(affinity, digits = 2),
+    nr_families
+  )],
+  groupBy = c("continent", "group"),
+  columns = list(
+    continent = colDef(name = "Continent", width = 120),
+    group = colDef(name = "TPG", width = 80),
+    family = colDef(name = "Family", width = 160),
+    order = colDef(name = "Order", width = 160),
+    trait = colDef(
+      name = "Trait",
+      width = 160
+    ),
+    prop_taxa_high_aff = colDef(name = "Proportion of taxa which express trait with an affinity > 0.5",
+                                width = 200),
+    affinity = colDef(name = "Affinity"),
+    nr_families = colDef(name = "Number of families", aggregate = "unique")
+  ),
+  filterable = TRUE,
+  highlight = TRUE,
+  defaultPageSize = 16
+)
+```
+
+## Table 8
+
+Families classified as outliers based on their trait profiles by the single linkage hierarchical cluster analysis.
+
+```{r, echo = FALSE}
+outliers <- readRDS("/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/outliers.rds")
+setcolorder(outliers,
+            c("continent", "group", "family", "order"))
+
+reactable(
+  outliers[order(continent, group), ],
+  columns = list(
+    continent = colDef("Continent"),
+    group = colDef("TPG"),
+    family = colDef("Family"),
+    order = colDef("Order")
+  ),
+  filterable = TRUE,
+  highlight = TRUE,
+  defaultPageSize = 11
+)
+
+```
+
+# Most and least important traits for TPG selection
+
+## Table 9
+
+Most important traits according to the permutation importance from the random forest models and according to the selection by the Boruta algorithm. Order reflects the ranking obtained from both selection methods.
+
+```{r, echo = FALSE}
+# TODO whole boruta for SI
+
+# rf permutation importance
+most_imp_vars <- readRDS("/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/most_imp_vars.rds")
+
+continents <- sub("([A-Z]{2,})(\\.)(.+)", "\\1", rownames(most_imp_vars))
+most_imp_vars$continents <- continents
+most_imp_vars$traits <- rownames(most_imp_vars)
+setDT(most_imp_vars)
+most_imp_vars[, traits := sub("([A-Z]{2,})(\\.)(.+)", "\\3", traits)]
+
+# 5 most important traits
+miv_pub <-
+  most_imp_vars[order(continents, -y), .(pi_score = head(y, n = 5),
+                                         traits_perm_imp = head(traits, n = 5)),
+                by = continents] 
+
+# 5 least important traits
+liv_pub <- most_imp_vars[order(continents, -y), .(pi_score = tail(y, n = 5),
+                                         traits_perm_imp = tail(traits, n = 5)),
+                by = continents] 
+
+# boruta
+boruta_res <-
+  readRDS(
+    "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/boruta_res.rds"
+  )
+boruta_res <- do.call(rbind, boruta_res)
+continents <- sub("([A-Z]{2,})(\\.)(.+)", "\\1", rownames(boruta_res))
+boruta_res$continents <- continents
+boruta_res$traits <- rownames(boruta_res)
+setDT(boruta_res)
+boruta_res[, traits_boruta := sub("([A-Z]{2,})(\\.)(.+)", "\\3", traits)]
+boruta_res <- boruta_res[order(continents, -meanImp), ]
+
+miv_boruta <- boruta_res[, .(traits_boruta = head(traits_boruta, n = 5)), by = continents]
+liv_boruta <- boruta_res[, .(traits_boruta = tail(traits_boruta, n = 5)), by = continents]
+
+reactable(
+  miv_pub[, .(
+    continents, 
+    traits_perm_imp,
+    traits_boruta = miv_boruta$traits_boruta
+  )],
+  columns = list(
+    continents = colDef(name = "Continent",
+                       width = 120),
+    traits_perm_imp = colDef(name = "Most important traits permutation importance"),
+    traits_boruta = colDef(name = "Most important traits Boruta")
+  ),
+  filterable = TRUE,
+  highlight = TRUE, 
+  defaultPageSize = 20
+)
+
+```
+
+## Table 10
+
+Least important traits according to the permutation importance from the random forest models and according to the selection by the Boruta algorithm. Order reflects the ranking obtained from both selection methods.
+
+```{r, echo = FALSE}
+reactable(
+  liv_pub[, .(
+    continents, 
+    traits_perm_imp,
+    traits_boruta = liv_boruta$traits_boruta
+  )],
+  columns = list(
+    continents = colDef(name = "Continent",
+                       width = 120),
+    traits_perm_imp = colDef(name = "Most important traits permutation importance"),
+    traits_boruta = colDef(name = "Most important traits Boruta")
+  ),
+  filterable = TRUE,
+  highlight = TRUE,
+  defaultPageSize = 20
+)
+
+```

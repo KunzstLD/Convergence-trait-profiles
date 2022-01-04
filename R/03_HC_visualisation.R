@@ -1,8 +1,6 @@
-#___________________________________________________________________________________________________
-#### Hierarchical clustering results & Visualization ####
-# __________________________________________________________________________________________________
-
-#### Loading data ####
+# ___________________________________________________________________________
+# Hierarchical clustering results & Visualization ----
+# ___________________________________________________________________________
 
 # Results from HC
 hc_output_ww <- readRDS(file.path(data_cache,
@@ -45,9 +43,9 @@ des_traits_order <- c(
   "volt_bi_multi"
 )
 
-# __________________________________________________________________________________________________
-#### Grouping features ####
-# __________________________________________________________________________________________________
+# ___________________________________________________________________________
+# Extract global distances ----
+# ___________________________________________________________________________
 
 # Extract Grouping features that most contributed to the global distance
 lookup_gf <- data.table(
@@ -69,10 +67,6 @@ lookup_gf <- data.table(
   )
 )
 
-# __________________________________________________________________________________________________
-#### Extract global distances ####
-# __________________________________________________________________________________________________
-
 global_dist <- list()
 for (i in names(hc_output_ww)) {
   gf_intm <- data.table(
@@ -85,14 +79,11 @@ for (i in names(hc_output_ww)) {
 saveRDS(object = global_dist,
         file = file.path(data_cache, "global_dist.rds"))
 
+# ___________________________________________________________________________
+# Auxiliary plots ----
+# ___________________________________________________________________________
 
-# __________________________________________________________________________________________________
-#### Create plots ####
-# __________________________________________________________________________________________________
-
-# _________________________________________________________
-#### Gap Statistic ####
-# _________________________________________________________
+## Gap Statistic ----
 for(region in names(hc_output_ww)) {
   png(
     file = file.path(
@@ -116,16 +107,14 @@ for(region in names(hc_output_ww)) {
   dev.off()
 }
 
-# _______________________________________________________
-#### Dendrogramm #### 
+## Dendrogramm ----
 # TODO: Dendrogram with order as labels
 # TODO: A few family names are too long, 
 # needs visual improvement
-# _______________________________________________________
 dendrograms <- list()
 for (i in names(hc_output_ww)) {
   plot <- fun_dendrog_pl(
-    hc = hc_output_ww[[i]]$hc_element,
+    hc = hc_output_ww[[i]]$hc_wardD,
     optimal_nog = hc_output_ww[[i]]$optimal_nog,
     labels = hc_output_ww[[i]]$labels_dendrogram
   )
@@ -148,8 +137,32 @@ for (i in names(dendrograms)) {
   dev.off()
 }
 
+## Ordination plots with superimposed single linkage clustering ----
+for(i in names(hc_output_ww)) {
+  png(
+    file = file.path(
+      data_paper,
+      "Graphs",
+      paste0("Ordination_superimposed_hc_", i, ".png")
+    ),
+    width = 1100,
+    height = 1300,
+    res = 100
+  )
+  s.label(hc_output_ww[[i]]$pcoa$li, clabel = 0.8)
+  # plot(hc_output_ww[[i]]$pcoa$li)
+  ordicluster(
+    hc_output_ww[[i]]$pcoa$li,
+    hc_output_ww[[i]]$hc_single,
+    prune = 3,
+    col = cutree(hc_output_ww[[i]]$hc_single,
+                 hc_output_ww[[i]]$optimal_nog)
+  )
+  dev.off()
+}
+
 # _______________________________________________________
-#### Heatmap plots ####
+# Heatmap plots ----
 # _______________________________________________________
 
 # trait profile groups for all continents
@@ -173,7 +186,7 @@ for(i in names(hc_output_ww)) {
 }
 
 #*****************************************************#
-#--- AUS ----
+## AUS ----
 #*****************************************************#
 
 # Trait data
@@ -217,8 +230,7 @@ grouping_feature_names <- c(
   "3" = "TPG 3",
   "4" = "TPG 4",
   "5" = "TPG 5",
-  "6" = "TPG 6",
-  "7" = "TPG 7"
+  "6" = "TPG 6"
 )
 
 # Plot TPGs and expressed traits
@@ -229,81 +241,12 @@ ggplot2::ggsave(
                        "Graphs", 
                        "Heatmap_tpgs_AUS.png"),
   width = 50,
-  height = 37,
-  units = "cm"
-)
-
-# Orders (do we have phylogenetic signal?)
-trait_AUS[, nr_families_gr := .N, by = group]
-trait_AUS[, prop_order := .N/nr_families_gr, by = .(group, order)]
-
-# Label function for plot (and following)
-tpg_names <- c("1" = "TPG 1",
-               "2" = "TPG 2",
-               "3" = "TPG 3",
-               "4" = "TPG 4",
-               "5" = "TPG 5",
-               "6" = "TPG 6",
-               "7" = "TPG 7",
-               "8" = "TPG 8", 
-               "9" = "TGP 9", 
-               "10" = "TPG 10")
-
-# Annotate nr of families per TPG 
-annotations_aus <- unique(trait_AUS[order(group), .(group, nr_families_gr)])
-annotations_aus[, `:=`(
-  x = rep(7.3, 7),
-  y = c(7.1, 6.1, 5.1, 4.1, 3.1, 2.1, 1.5),
-  label = paste0("n = ", nr_families_gr)
-)]
-
-ggplot(trait_AUS, aes(x = as.factor(order),
-                      y = prop_order * 100)) +
-  geom_pointrange(aes(ymin = 0,
-                      ymax = prop_order * 100))  +
-  geom_text(
-    data = annotations_aus,
-    aes(x = x,
-        y = y,
-        label = label),
-    colour = "black",
-    inherit.aes = FALSE,
-    parse = FALSE,
-    size = 5
-  ) +
-  facet_grid(group ~ ., labeller = as_labeller(tpg_names)) +
-  labs(x = "Order", y = "Percentage per TPG") +
-  ggtitle("AUS: Orders per TPGs") +
-  theme_bw() +
-  theme(
-    axis.title = element_text(size = 16),
-    axis.text.x = element_text(
-      family = "Roboto Mono",
-      size = 14,
-      angle = 45,
-      hjust = 1
-    ),
-    axis.text.y = element_text(family = "Roboto Mono",
-                               size = 14),
-    legend.title = element_text(family = "Roboto Mono",
-                                size = 16),
-    legend.text = element_text(family = "Roboto Mono",
-                               size = 14),
-    strip.text = element_text(family = "Roboto Mono",
-                              size = 14),
-    panel.grid = element_blank()
-  )
-ggplot2::ggsave(
-  filename = file.path(data_paper,
-                       "Graphs", 
-                       "Orders_per_TPG_AUS.png"),
-  width = 35,
-  height = 33,
+  height = 40,
   units = "cm"
 )
 
 #*****************************************************#
-#---- EU ----
+## EU ----
 #*****************************************************#
 
 # Trait data
@@ -351,80 +294,23 @@ grouping_feature_names <- c(
   "6" = "TPG 6",
   "7" = "TPG 7",
   "8" = "TPG 8",
-  "9" = "TPG 9",
-  "10" = "TPG 10"
+  "9" = "TPG 9"
 )
 
 # plot
 fun_heatmap_single_cont(data = trait_EU_lf) +
-  ggtitle("TPGs EU")
+  ggtitle("TPGs EUR")
 ggplot2::ggsave(
   filename = file.path(data_paper,
                        "Graphs", 
                        "Heatmap_tpgs_EU.png"),
   width = 50,
-  height = 37,
-  units = "cm"
-)
-
-# Orders (do we have phylogenetic signal?)
-trait_EU[, nr_families_gr := .N, by = group]
-trait_EU[, prop_order := .N/nr_families_gr, by = .(group, order)]
-
-annotations_eu <- unique(trait_EU[order(group), .(group, nr_families_gr)])
-annotations_eu[, `:=`(
-  x = rep(7.3, 10),
-  y = c(10.1, 9.1, 8.1, 7.1, 6.1, 5.1, 4.3, 3.3, 2.3, 1.5),
-  label = paste0("n = ", nr_families_gr)
-)]
-
-ggplot(trait_EU, aes(x = as.factor(order),
-                      y = prop_order * 100)) +
-  geom_pointrange(aes(ymin = 0,
-                      ymax = prop_order * 100))  +
-  geom_text(
-    data = annotations_eu,
-    aes(x = x,
-        y = y,
-        label = label),
-    colour = "black",
-    inherit.aes = FALSE,
-    parse = FALSE,
-    size = 5
-  ) +
-  facet_grid(group ~ ., labeller = as_labeller(tpg_names)) +
-  labs(x = "Order", y = "Percentage per TPG") +
-  ggtitle("EU: Orders per TPGs") +
-  theme_bw() +
-  theme(
-    axis.title = element_text(size = 16),
-    axis.text.x = element_text(
-      family = "Roboto Mono",
-      size = 14,
-      angle = 45,
-      hjust = 1
-    ),
-    axis.text.y = element_text(family = "Roboto Mono",
-                               size = 14),
-    legend.title = element_text(family = "Roboto Mono",
-                                size = 16),
-    legend.text = element_text(family = "Roboto Mono",
-                               size = 14),
-    strip.text = element_text(family = "Roboto Mono",
-                              size = 14),
-    panel.grid = element_blank()
-  )
-ggplot2::ggsave(
-  filename = file.path(data_paper,
-                       "Graphs", 
-                       "Orders_per_TPG_EU.png"),
-  width = 35,
-  height = 33,
+  height = 40,
   units = "cm"
 )
 
 #*****************************************************#
-#---- NOA ----
+## NOA ----
 #*****************************************************#
 
 # Trait data
@@ -469,80 +355,28 @@ grouping_feature_names <- c(
   "3" = "TPG 3",
   "4" = "TPG 4",
   "5" = "TPG 5",
-  "6" = "TPG 6"
+  "6" = "TPG 6",
+  "7" = "TPG 7",
+  "8" = "TPG 8",
+  "9" = "TPG 9"
 )
 
 # plot
 fun_heatmap_single_cont(data = trait_NOA_lf) +
-  ggtitle("TPGs NOA")
+  ggtitle("TPGs NA")
 ggplot2::ggsave(
   filename = file.path(data_paper,
                        "Graphs",
                        "Heatmap_tpgs_NOA.png"),
   width = 50,
-  height = 37,
+  height = 40,
   units = "cm"
 )
-
-# Orders (do we have phylogenetic signal?)
-trait_NOA[, nr_families_gr := .N, by = group]
-trait_NOA[, prop_order := .N/nr_families_gr, by = .(group, order)]
-
-annotations_noa <- unique(trait_NOA[order(group), .(group, nr_families_gr)])
-annotations_noa[, `:=`(
-  x = rep(9.3, 6),
-  y = c(6.1:1.1),
-  label = paste0("n = ", nr_families_gr)
-)]
-
-ggplot(trait_NOA, aes(x = as.factor(order),
-                     y = prop_order * 100)) +
-  geom_pointrange(aes(ymin = 0,
-                      ymax = prop_order * 100))  +
-  geom_text(
-    data = annotations_noa,
-    aes(x = x,
-        y = y,
-        label = label),
-    colour = "black",
-    inherit.aes = FALSE,
-    parse = FALSE,
-    size = 5
-  ) +
-  facet_grid(group ~ ., labeller = as_labeller(tpg_names)) +
-  labs(x = "Order", y = "Percentage per TPG") +
-  ggtitle("NOA: Orders per TPGs") +
-  theme_bw() +
-  theme(
-    axis.title = element_text(size = 16),
-    axis.text.x = element_text(
-      family = "Roboto Mono",
-      size = 14,
-      angle = 45,
-      hjust = 1
-    ),
-    axis.text.y = element_text(family = "Roboto Mono",
-                               size = 14),
-    legend.title = element_text(family = "Roboto Mono",
-                                size = 16),
-    legend.text = element_text(family = "Roboto Mono",
-                               size = 14),
-    strip.text = element_text(family = "Roboto Mono",
-                              size = 14),
-    panel.grid = element_blank()
-  )
-ggplot2::ggsave(
-  filename = file.path(data_paper,
-                       "Graphs", 
-                       "Orders_per_TPG_NOA.png"),
-  width = 35,
-  height = 33,
-  units = "cm"
-)
-
 
 #*****************************************************#
-#---- NZ ----
+## NZ ----
+# May merge cluster 6 to 7? Cluster 6 consists of only two families;
+# similar defining traits
 #*****************************************************#
 
 # Trait data
@@ -601,68 +435,12 @@ ggplot2::ggsave(
   filename = file.path(data_paper,
                        "Graphs", 
                        "Heatmap_tpgs_NZ.png"),
-  width = 50,
-  height = 37,
+  width = 60,
+  height = 35,
   units = "cm"
 )
 
-# Orders (do we have phylogenetic signal?)
-trait_NZ[, nr_families_gr := .N, by = group]
-trait_NZ[, prop_order := .N/nr_families_gr, by = .(group, order)]
-
-annotations_nz <- unique(trait_NZ[order(group), .(group, nr_families_gr)])
-annotations_nz[, `:=`(
-  x = rep(9.3, 9),
-  y = c(9.1:1.1),
-  label = paste0("n = ", nr_families_gr)
-)]
-
-ggplot(trait_NZ, aes(x = as.factor(order),
-                      y = prop_order * 100)) +
-  geom_pointrange(aes(ymin = 0,
-                      ymax = prop_order * 100))  +
-  geom_text(
-    data = annotations_nz,
-    aes(x = x,
-        y = y,
-        label = label),
-    colour = "black",
-    inherit.aes = FALSE,
-    parse = FALSE,
-    size = 5
-  ) +
-  facet_grid(group ~ ., labeller = as_labeller(tpg_names)) +
-  labs(x = "Order", y = "Percentage per TPG") +
-  ggtitle("NZ: Orders per TPGs") +
-  theme_bw() +
-  theme(
-    axis.title = element_text(size = 16),
-    axis.text.x = element_text(
-      family = "Roboto Mono",
-      size = 14,
-      angle = 45,
-      hjust = 1
-    ),
-    axis.text.y = element_text(family = "Roboto Mono",
-                               size = 14),
-    legend.title = element_text(family = "Roboto Mono",
-                                size = 16),
-    legend.text = element_text(family = "Roboto Mono",
-                               size = 14),
-    strip.text = element_text(family = "Roboto Mono",
-                              size = 14),
-    panel.grid = element_blank()
-  )
-ggplot2::ggsave(
-  filename = file.path(data_paper,
-                       "Graphs", 
-                       "Orders_per_TPG_NZ.png"),
-  width = 35,
-  height = 33,
-  units = "cm"
-)
-
-# Save trait data with group assignments for further analyses
+# Save trait data with group assignments for further analyses ----
 trait_CONT <- rbind(trait_AUS_lf,
                     trait_EU_lf,
                     trait_NOA_lf,
@@ -671,3 +449,88 @@ trait_CONT <- rbind(trait_AUS_lf,
 trait_CONT[, continent := factor(continent, labels = c("AUS", "EU", "NOA", "NZ"))]
 saveRDS(object = trait_CONT,
         file = file.path(data_cache, "trait_dat_grp_assig.rds"))
+
+# _______________________________________________________
+# Outliers ----
+# Results from single linkage clustering
+# _______________________________________________________
+for(i in names(dendrograms)){
+  png(
+    file = file.path(data_paper,
+                     "Graphs",
+                     paste0(
+                       "Dendrogram_single_linkage_", i, ".png"
+                     )),
+    width = 1100,
+    height = 1300,
+    res = 100
+  )
+  as.dendrogram(hc_output_ww[[i]]$hc_single) %>% 
+    hang.dendrogram(., hang_height = 0.001) %>% 
+    plot(., horiz = TRUE)
+  dev.off()
+}
+
+# prepare outlier dataset for quick overview
+outliers <- rbindlist(list(
+  # AUS: "Heteroceridae", "Limnichidae"
+  "AUS" = trait_AUS[family %in% c("Heteroceridae",
+                                  "Limnichidae"), ],
+  # EUR: "Chrysomelidae", "Ephemeridae"
+  "EU" = trait_EU[family %in% c("Chrysomelidae",
+                                "Ephemeridae",
+                                "Baetidae",
+                                "Corixidae"),],
+  # NOA: "Dixidae", "Sisyridae"
+  "NOA" = trait_NOA[family %in% c("Dixidae",
+                                  "Sisyridae"),],
+  # NZ
+  "NZ" = trait_NZ[family %in% c("Stratiomyidae",
+                                "Tanyderidae",
+                                "Simuliidae",
+                                "Hydrometridae"), ]
+),
+idcol = "continent")
+saveRDS(outliers,
+        file.path(data_cache, "outliers.rds"))
+
+# long format
+outliers_lf <- melt(
+  outliers,
+  id.vars = c("family", "order", "group", "continent"),
+  variable.name = "trait",
+  value.name = "affinity"
+)
+outliers_lf[, grouping_feature := sub("([a-z]{1,})(\\_)(.+)", "\\1", trait)] 
+outliers_lf[, group := factor(group)]
+outliers_lf[order(continent), ] %>% 
+  .[affinity >= 0.5, ] %>% 
+  .[continent == "AUS", ]
+
+p_list <- list()
+for(cont in c("AUS", "EU", "NOA", "NZ")) {
+  p_list[[cont]] <-
+    fun_heatmap_single_cont(data = outliers_lf[continent == cont,])
+}
+(p_list[["AUS"]] + p_list[["EU"]])/ (p_list[["NOA"]] + p_list[["NZ"]])
+
+# AUS: 
+#   Heteroceridae:  streamlined, gatherers, burrowers, terrestrial ovipositon, respiration with plastron and spircale, small size, expressed all three voltinism traits
+# Limnichidae: cylindrical, gatherers, swimmers, terrestrial ovipositon, respiration with plastron and spircale, small size, expressed all three voltinism traits (part of AUS_TPG5)
+# EU: 
+#   Chrysomelidae: cylindrical, shredder, sessil & burrow, ovip_aqu, resp_teg & resp_pls_spi, size_medium, volt_uni
+# Ephemeridae: cylindrical, filterer, burrower, ovip_aqu, resp_teg & resp_gil, size_large, volt_semi
+# Baetidae: bf_streamlined & cylindrical, locom_swim & locom_crawl, ovip_aqu, resp_teg & resp_gil, size_small, volt_bi_multi
+# Corixidae: flattened & cylindrical, gatherer, swimmer, aquatic oviposition, resp_teg & resp_pls_spi, size small, volt_uni & volt_bi_multi 
+# NOA: 
+#   Dixidae: cylindrical, gatherer, swimmer, ovip_ter, resp_pls_spi, size_medium & size_small, volt_uni
+# Sisyridae: streamlined, predator & herbivore, swimming & crawling, terrestrial oviposition, , resp_teg & resp_gil, size_small, volt_bi_multi & volt_semi (part of NA_TPG 3)
+# NZ: 
+#   Stratiomyidae: flattened & cylindrical, herbivore, crawling, ovip_ter & ovip_aqu, resp_pls_spi, size_medium, volt_semi 
+# Hydrometridae: spherical & cylindrical, predator, crawling, ovip_aqu & ovip_ter, resp_pls_spi, size_medium & size_small, volt_bi_multi
+# Simuliidae: cylindrical, herbivore & filterer, sessil, aquatic oviposition, resp_teg & resp_gil, size_small, volt_bi_multi
+# Tanyderidae
+
+
+
+

@@ -46,7 +46,7 @@ check_colNames <- function(x) {
 create_pattern_ind <- function(x, non_trait_cols) {
   if (missing(non_trait_cols)) {
     trait_names_pattern <- sub("\\_.*|\\..*", "", names(x)) %>%
-      unique() %>%
+      unigooque() %>%
       paste0("^", .)
   } else{
     pat <- paste0(non_trait_cols, collapse = "|")
@@ -257,6 +257,77 @@ meta_rf <- function(train,
     "pred_test" = pred_test)
 }
 
+### Multivariate Welch-Test ####
+# https://github.com/alekseyenko/WdStar
+
+dist.ss2 = function(dm2, f){ #dm2 is matrix of square distances; f factor
+  K = sapply(levels(f), function(lev) f==lev)
+  t(K)%*%dm2%*%K/2
+}
+
+
+generic.distance.permutation.test <-
+  function(test.statistic,
+           dm,
+           f,
+           nrep = 999,
+           strata = NULL) {
+    N = length(f)
+    generate.permutation = function() {
+      f[sample(N)]
+    }
+    
+    if (!is.null(strata)) {
+      # map elements of each strata back to their positions in the factor variable
+      strata.map = order(unlist(tapply(seq_along(f), strata, identity)))
+      generate.permutation = function() {
+        p = unlist(tapply(f, strata, sample)) # permute within strata
+        p[strata.map]
+      }
+    }
+    
+    stats = c(test.statistic(dm, f),
+              replicate(nrep,
+                        test.statistic(dm, generate.permutation())))
+    
+    p.value = sum(stats >= stats[1]) / (nrep + 1)
+    statistic = stats[1]
+    list(p.value = p.value,
+         statistic = statistic,
+         nrep = nrep)
+  }
+
+WdS <- function(dm, f) {
+  # This method computes Wd* statistic for distance matrix dm and factor f
+  ns = table(f)
+  SS2 = dist.ss2(as.matrix(dm) ^ 2, f)
+  s2 = diag(SS2) / ns / (ns - 1)
+  W = sum(ns / s2)
+  
+  idxs = apply(combn(levels(f), 2), 2, function(idx)
+    levels(f) %in% idx)
+  
+  Ws = sum(apply(idxs, 2,
+                 function(idx)
+                   sum(ns[idx]) / prod(s2[idx]) *
+                   (sum(SS2[idx, idx]) / sum(ns[idx]) - sum(diag(
+                     SS2[idx, idx]
+                   ) / ns[idx]))))
+  k = nlevels(f)
+  h = sum((1 - ns / s2 / W) ^ 2 / (ns - 1))
+  Ws / W / (k - 1) / (1 + (2 * (k - 2) / (k ^ 2 - 1)) * h)
+}
+
+WdS.test <- function(dm, f, nrep = 999, strata = NULL) {
+  generic.distance.permutation.test(
+    WdS,
+    dm = dm,
+    f = f,
+    nrep = nrep,
+    strata = strata
+  )
+}
+
 
 # _________________________________________________________________________
 #### Plotting ####
@@ -281,7 +352,7 @@ fun_dendrog_pl <- function(hc,
 # Columns of data are hardcoded, maybe change in the future
 fun_heatmap_single_cont <- function(data) {
   ggplot(data, aes(x = family,
-                   y = trait_label,
+                   y = trait,
                    fill = affinity)) +
     geom_tile() +
     facet_grid(
@@ -296,23 +367,24 @@ fun_heatmap_single_cont <- function(data) {
     labs(x = "Family", y = "Trait") +
     theme_bw() +
     theme(
-      axis.title = element_text(size = 18),
+      axis.title = element_text(size = 22),
       axis.text.x = element_text(
         family = "Roboto Mono",
         size = 16,
         angle = 90,
-        hjust = 1
+        hjust = 1,
+        vjust = 0.2
       ),
       axis.text.y = element_text(family = "Roboto Mono",
                                  size = 16),
       legend.title = element_text(family = "Roboto Mono",
-                                  size = 18),
+                                  size = 16),
       legend.text = element_text(family = "Roboto Mono",
                                  size = 16),
       strip.text = element_text(family = "Roboto Mono",
                                 size = 16),
       plot.title = element_text(family = "Roboto Mono", 
-                                size = 18),
+                                size = 20),
       panel.grid = element_blank()
     )
 }
@@ -324,33 +396,35 @@ fun_heatmap_tpg <- function(data,
                    y = trait,
                    fill = affinity)) +
     geom_tile() +
-    facet_grid(. ~ continent,
-               scales = "free",
-               space = "free",
-               labeller = as_labeller(facet_names)) +
+    facet_grid(
+      . ~ continent,
+      scales = "free",
+      space = "free",
+      labeller = as_labeller(facet_names)
+    ) +
     scale_fill_gradient(name = "Trait affinity",
                         low = "#FFFFF1",
                         high = "#012345") +
-    labs(x = "Trait", y = "Family") +
+    labs(x = "Family", y = "Trait") +
     theme_bw() +
     theme(
-      axis.title = element_text(size = 18),
+      axis.title = element_text(size = 20),
       axis.text.x = element_text(
         family = "Roboto Mono",
         size = 16,
         angle = 90,
         hjust = 1,
         vjust = 0.2
-        ),
+      ),
       axis.text.y = element_text(family = "Roboto Mono",
-                                 size = 14),
+                                 size = 16),
       legend.title = element_text(family = "Roboto Mono",
                                   size = 16),
       legend.text = element_text(family = "Roboto Mono",
-                                 size = 14),
+                                 size = 16),
       strip.text = element_text(family = "Roboto Mono",
-                                size = 14),
-      plot.title = element_text(family = "Roboto Mono", 
+                                size = 15),
+      plot.title = element_text(family = "Roboto Mono",
                                 size = 16),
       panel.grid = element_blank()
     )
@@ -423,5 +497,3 @@ direct_agg <- function(trait_data,
   ]
   agg_data
 }
-
-

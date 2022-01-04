@@ -74,7 +74,6 @@ traits_EU[kg_cr[!is.na(climateregion), ],
           on = "ID_AQEM"]
 traits_eu_cr <- traits_EU[!is.na(climateregion), ]
 traits_eu_cr[, spec_per_cr := .N , by = climateregion]
-
 traits_eu_cr <- traits_eu_cr[, .SD,
                              .SDcols = names(traits_eu_cr) %like% "locom|feed|resp|volt|size|bf|ovip|temp|species|genus|family|order|climateregion"] %>%
   .[order %in% c(
@@ -88,9 +87,8 @@ traits_eu_cr <- traits_eu_cr[, .SD,
     "Megaloptera",
     "Neuroptera"
   ),]
-
 # check completeness
-completeness_trait_data(x = traits_eu_cr[, .SD, .SDcols = patterns("size|feed|resp|locom|volt|temp")])
+# completeness_trait_data(x = traits_eu_cr[, .SD, .SDcols = patterns("size|feed|resp|locom|volt|temp")])
 
 # TODO just return rows where for each trait there is an observation
 
@@ -160,7 +158,7 @@ setnames(
 )
 
 # For NOA Taxa 
-# Information for 625 Genera
+# Information for 626 Genera
 # Select Genera that are restricted to one climateregion:
 # cold 122
 # temperate 45
@@ -173,11 +171,8 @@ summary_cr_taxa[noa_one_mcr[, .N, by = climateregion],
 # Trait data NOA
 trait_NOA <- readRDS(file.path(data_in, "Traits_US_LauraT_pp_harmonized.rds"))
 summary_cr_taxa[Variable == "Total Nr. taxa", `Nr. Taxa NOA` := length(unique(trait_NOA[!is.na(genus), genus]))]
-summary_cr_taxa <- rbind(
-  summary_cr_taxa[1:2,],
-  list("Genera with occurrence data", traits_eu_cr, nrow(occ_noa_mcr)),
-  summary_cr_taxa[3:6,]
-)
+summary_cr_taxa[is.na(`Nr. Taxa NOA`), `Nr. Taxa NOA` := nrow(occ_noa_mcr)]
+
 saveRDS(
   summary_cr_taxa,
   file.path(

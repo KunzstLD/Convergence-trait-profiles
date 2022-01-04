@@ -9,6 +9,8 @@ traits_eu_cr <- readRDS(file.path(
   "Cache_comparison_climatic_reg",
   "trait_eu_cr.rds"
 ))
+# completeness_trait_data(x = traits_eu_cr[, .SD, 
+#                                            .SDcols = patterns("size|feed|resp|locom|volt|temp|ovip")])
 
 # Extract genera that are just restricted to one cr
 genus_eu_cr <- traits_eu_cr[, .(genus), by = climateregion] %>%
@@ -20,6 +22,7 @@ genus_eu_cr[, sum_occ_mcr := apply(.SD, 1, sum),
                         "polar",
                         "temperate")]
 genera_one_cr <- genus_eu_cr[sum_occ_mcr == 1, genus]
+genus_eu_cr[polar == 1 & arid == 0 & cold == 0 & temperate == 0, ]
 
 # Aggregate to genus-level
 eu_glvl <- direct_agg(
@@ -143,7 +146,7 @@ murria_subset <- murria_traits[Genus %in% genera_in_eu, ]
 
 # _________________________________________________________________________
 # Harmonize Murria's traits (?)
-# (murria has no information on TEMP preference!)
+# (murria has no information on TEMP preference)
 # _________________________________________________________________________
 # Size:
 # size_small: size < 9 mm (EU: size < 10 mm)
@@ -170,7 +173,6 @@ murria_subset[, c("SIZE1",
                   "SIZE7") := NULL]
 
 # _________________________________________________________________________
-
 # Feeding mode
 murria_subset[, feed_shredder := apply(.SD, 1, max, na.rm = TRUE),
          .SDcols = c(
@@ -201,7 +203,6 @@ murria_subset[, c("MIN",
                   "PFF", 
                   "OTHER") := NULL]
 # _________________________________________________________________________
-
 # Respiration
 murria_subset[, resp_pls_spi := apply(.SD, 1, max, na.rm = TRUE),
               .SDcols = c("SPIR", "PLAS")]
@@ -216,8 +217,7 @@ murria_subset[, c("SPIR",
                   "PLAS") := NULL]
 
 # _________________________________________________________________________
-
-# Locom
+# Locomotion
 murria_subset[, locom_swim := apply(.SD, 1, max, na.rm = TRUE),
               .SDcols = c("SWIMM",
                           "SURSWI")]
@@ -239,7 +239,6 @@ murria_subset[, c("SWIMM",
                   "TEMATT",
                   "FLIER") := NULL]
 # _________________________________________________________________________
-
 # Volt
 setnames(murria_subset,
          old = c("SEMIVO",
@@ -250,7 +249,6 @@ setnames(murria_subset,
                  "volt_bi_multi"))
 
 # _________________________________________________________________________
-
 # Ovip
 murria_subset[, ovip_aqu := apply(.SD, 1, max, na.rm = TRUE),
          .SDcols = c(

@@ -25,7 +25,7 @@ trait_dat <- list(
   "NZ" = trait_NZ
 )
 
-# Check distribution within groups (familie richness)
+# Check distribution within groups (family richness)
 obs_group <- lapply(trait_dat, function(y) y[, .N, by = group])
 obs_group <- rbindlist(obs_group, idcol = "continent")  
 obs_group[, group := factor(group, levels = c(1:10))]
@@ -40,7 +40,6 @@ trait_dat <- lapply(trait_dat, function(y) y[, group := factor(make.names(group)
 # lapply(trait_dat, dim)
 
 # --- Calculate RF ---------------------------------------------------------------------------------
-
 most_imp_vars <- list()
 ls_instance <- list()
 scores_test <- list()
@@ -138,28 +137,43 @@ for(region in names(trait_dat_cp)) {
 # ls_instance$NZ$archive$data[order(classif.mbrier),][1,]
 
 # Inspect prediction re mbrier score
+# looks good
 scores_test
 scores_train
 
-# save
+# save results
 scores_test <- do.call(rbind, scores_test) %>%
   as.data.frame()
-names(scores_test)[names(scores_test) == "classif.mbrier"] <- "mbrier_score_test"
+names(scores_test)[names(scores_test) == "classif.mbrier"] <-
+  "mbrier_score_test"
 scores_test$continent <- rownames(scores_test)
 scores_train <- do.call(rbind, scores_train) %>%
   as.data.frame()
-names(scores_train)[names(scores_train) == "classif.mbrier"] <- "mbrier_score_train"
+names(scores_train)[names(scores_train) == "classif.mbrier"] <-
+  "mbrier_score_train"
 perf_summary <- cbind(scores_test, scores_train)
 setDT(perf_summary)
-setcolorder(perf_summary, 
+setcolorder(perf_summary,
             neworder = "continent")
 saveRDS(perf_summary, file.path(data_cache, "perf_summary.rds"))
 
 # Most important variables
-most_imp_vars <- lapply(most_imp_vars, function(y) as.data.frame(y)) %>% 
+most_imp_vars <-
+  lapply(most_imp_vars, function(y)
+    as.data.frame(y)) %>%
   do.call(rbind, .)
 saveRDS(most_imp_vars, file = file.path(data_cache, "most_imp_vars.rds"))
 
+# most_imp_vars <- readRDS(file.path(data_cache, "most_imp_vars.rds"))
+# continents <-
+#   sub("([A-Z]{2,})(\\.)(.+)", "\\1", rownames(most_imp_vars))
+# most_imp_vars$continents <- continents
+# most_imp_vars$traits <- rownames(most_imp_vars)
+# setDT(most_imp_vars)
+# most_imp_vars[, traits := sub("([A-Z]{2,})(\\.)(.+)", "\\3", traits)]
+# most_imp_vars[order(continents, -y), .(pi_score = tail(y, n = 5),
+#                                        traits_perm_imp = tail(traits, n = 5)),
+#               by = continents]
 
 # --- Variable selection with wrapper algorithm Boruta ---------------------------------------------
 output <- list()
@@ -169,7 +183,8 @@ for (region in c("AUS", "EU", "NOA", "NZ")) {
   dat <- trait_dat_cp[[region]]
   output[[region]] <- Boruta(group ~ .,
                           data = dat,
-                          maxRuns = 100)
+                          maxRuns = 100,
+                          doTrace = 3)
 }
 
 # TODO: show values of all iterations
@@ -193,7 +208,6 @@ for(region in names(boruta_res)) {
   )
 }
 
-# ?trait interactions
 
 # --- Brier score ----------------------------------------------------------------------------------
 # Do not use Accuracy but rather Brier score 

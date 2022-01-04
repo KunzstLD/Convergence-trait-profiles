@@ -1,7 +1,6 @@
 # _____________________________________________________________________
-#### Comparison between climatic regions NOA ####
+# Comparison between climatic regions NOA ----
 # _____________________________________________________________________
-
 occ_noa <- fread(file.path(data_in, "Conus_data_KoppenGeiger.csv"))
 occ_noa <- occ_noa[!is.na(Genus), ]
 
@@ -41,25 +40,69 @@ noa_one_mcr[
 ]
 noa_one_mcr[, .N, by = climateregion]
 
+# Taxa with possible information
+noa_genera_temp <- noa_one_mcr[climateregion == "temperate", ]
+noa_genera_cold <- noa_one_mcr[climateregion == "cold", Genus]
+saveRDS(noa_genera_temp, 
+        file.path(data_cache, "noa_genera_temp.rds"))
+
+# _____________________________________________________________________
+## Match trait data ----
+# _____________________________________________________________________
 
 # Load trait data
 trait_NOA <- readRDS(file.path(data_in, "Traits_US_LauraT_pp_harmonized.rds"))
 
 # Use genus level information from North American trait database
 trait_NOA_genus <- trait_NOA[is.na(species) & !is.na(genus), ]
+trait_NOA_spec <- trait_NOA[!is.na(species) & !genus %in% trait_NOA_genus$genus, ]
+
 # 32 genera not coverd in trait DB
+# noa_one_mcr[!Genus %in% trait_NOA$genus, ]
+
+# data on genus-level
 traits_noa_clim <- merge(
     noa_one_mcr,
     trait_NOA_genus,
     by.x = "Genus",
     by.y = "genus"
 )
+# traits_noa_clim[, .N, by = climateregion]
 
+# data on species-level which needs to be aggregated to genus-level
+traits_noa_clim_spec <- merge(noa_one_mcr, 
+      trait_NOA_spec, 
+      by.x = "Genus", 
+      by.y = "genus")
+traits_noa_clim_agg <- direct_agg(
+    trait_data = traits_noa_clim_spec,
+    non_trait_cols = c(
+        "Genus",
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "sum_occ_mcr",
+        "climateregion",
+        "unique_id",
+        "family",
+        "order",
+        "species"
+    ),
+    method = median,
+    taxon_lvl = "Genus"
+)
+
+
+# _____________________________________________________________________
+## Final data prep ----
 # select rel columns
 # just select aquatic insects
+# _____________________________________________________________________
 traits_noa_clim <- traits_noa_clim[, .SD,
                                    .SDcols = patterns(
-                                       "Genus|family|order|climateregion|feed.*|locom.*|size.*|resp.*|volt.*|ovip*|bf.*"
+                                       "Genus|family|order|climateregion|feed.*|locom.*|size.*|resp.*|volt.*|bf.*|ovip|dev"
                                    )] %>% 
     .[order %in% c(
         "Ephemeroptera",
@@ -90,6 +133,21 @@ newcolorder <- c(
 )
 setcolorder(x = traits_noa_clim, 
             newcolorder)
+
+# prep for aggregated data
+# merge information on family and order back
+traits_noa_clim_agg[traits_noa_clim_spec,
+                    `:=`(order = i.order, 
+                         family = i.family,
+                         climateregion = i.climateregion),
+                    on = "Genus"
+]
+setnames(traits_noa_clim_agg, "Genus", "genus")
+
+# finally, add data on genus-level and aggregated data together
+traits_noa_clim <- rbind(traits_noa_clim,
+                         traits_noa_clim_agg)
+traits_noa_clim[, .N, by = climateregion]
 
 # save
 saveRDS(

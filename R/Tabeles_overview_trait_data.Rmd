@@ -1,0 +1,128 @@
+---
+title: "Tables convergence trait profiles - Overview trait data"
+output: html_document
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, 
+                    output_dir = "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Paper/Tables/") })
+---
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo = FALSE, message = FALSE}
+# Set up
+library(data.table)
+library(dplyr)
+library(reactable)
+library(htmltools)
+```
+
+# Continental trait data
+
+## Table 2
+Overview of families of aggregated continental trait data. Shown are the total number of families per trait dataset and the number of families per order.
+
+
+```{r, echo = FALSE, message = FALSE}
+trait_data_bind <-
+  readRDS(
+    "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/trait_data_ww_bind.rds"
+  )
+
+# Calculate nr of taxa & prop of orders
+trait_data_bind[, nr_taxa := .N, by = "continent"]
+trait_data_bind[, nr_fam_per_order := .N, by = .(continent, order)]
+trait_data_bind[, prop_order := nr_fam_per_order / nr_taxa]
+
+cont_td_summary <-
+  unique(trait_data_bind[, .(continent, nr_taxa, order, nr_fam_per_order)]) %>%
+  dcast(., ... ~ order)
+
+reactable(
+  cont_td_summary,
+  columns = list(
+    continent = colDef(name = "Continent",
+                       width = 110),
+    nr_taxa = colDef(name = "Total nr. of families"),
+    Ephemeroptera = colDef(width = 150)
+  ),
+  highlight = TRUE
+)
+```
+
+# Trait data climate regions
+
+## Table 3
+
+Overview of genera of aggregated European climatic region trait dataset.
+
+```{r, echo = FALSE, message = FALSE}
+# EU
+eu_clim <-
+  readRDS(
+    "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/Cache_comparison_climatic_reg/eu_glvl_murria_pp.rds"
+  )
+
+eu_clim_summary <-
+  eu_clim[, .(genus, family, order, continent, climateregion)]
+eu_clim_summary[, nr_genera_cr := .N, by = "climateregion"]
+eu_clim_summary[, nr_genera_cr_order := .N, by = .(climateregion, order)]
+eu_clim_summary <-
+  eu_clim_summary[, .(order, family, nr_genera_cr_order, nr_genera_cr, climateregion)] %>%
+  dcast(.,
+        order + nr_genera_cr_order + nr_genera_cr + climateregion ~ family,
+        fun.aggregate = length) %>%
+  .[order(climateregion),]
+
+reactable(
+  eu_clim_summary,
+  columns = list(
+    order = colDef(name = "Order",
+                   width = 100),
+    nr_genera_cr_order = colDef(name = "Nr. of genera per climateregion and order"),
+    nr_genera_cr = colDef(name = "Total nr. genera per climateregion"),
+    climateregion = colDef(name = "Climateregion")
+  ),
+  filterable = TRUE,
+  highlight = TRUE
+)
+
+```
+
+### Table 4:
+
+Overview of genera of aggregated North American climatic region trait dataset.
+
+```{r, echo = FALSE, message = FALSE}
+# NOA
+noa_clim <-
+  readRDS(
+    "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/Cache_comparison_climatic_reg/noa_glvl_pp.rds"
+  )
+
+noa_clim_summary <- noa_clim[, .(genus, family, order, continent, climateregion)]
+noa_clim_summary[, nr_genera_cr := .N, by = "climateregion"]
+noa_clim_summary[, nr_genera_cr_order := .N,
+                 by = .(climateregion, order)]
+noa_clim_summary <-
+  noa_clim_summary[, .(order, family, nr_genera_cr_order, nr_genera_cr, climateregion)] %>%
+  dcast(.,
+        order + nr_genera_cr_order + nr_genera_cr + climateregion ~ family,
+        fun.aggregate = length) %>%
+  .[order(climateregion),]
+
+reactable(
+  noa_clim_summary,
+  columns = list(
+    order = colDef(name = "Order",
+                   width = 120),
+    nr_genera_cr_order = colDef(name = "Nr. of genera per climateregion and order", 
+                                width = 120),
+    nr_genera_cr = colDef(name = "Total nr. genera per climateregion"),
+    climateregion = colDef(name = "Climateregion")
+  ),
+  filterable = TRUE,
+  highlight = TRUE
+)
+```
