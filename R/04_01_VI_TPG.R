@@ -1,5 +1,5 @@
 #___________________________________________________________________________________________________
-#### Variable importance for the traits to determine which traits drive TPG selection ####
+# Variable importance for the traits to determine which traits drive TPG selection ----
 # 1) RF normal mode with permutation importance
 # From the project description: 
 # -Convergence of trait profiles: 
@@ -39,7 +39,7 @@ ggplot(obs_group, aes(x = group, y = N)) +
 trait_dat <- lapply(trait_dat, function(y) y[, group := factor(make.names(group))])
 # lapply(trait_dat, dim)
 
-# --- Calculate RF ---------------------------------------------------------------------------------
+# Calculate RF ----
 most_imp_vars <- list()
 ls_instance <- list()
 scores_test <- list()
@@ -164,18 +164,82 @@ most_imp_vars <-
   do.call(rbind, .)
 saveRDS(most_imp_vars, file = file.path(data_cache, "most_imp_vars.rds"))
 
-# most_imp_vars <- readRDS(file.path(data_cache, "most_imp_vars.rds"))
-# continents <-
-#   sub("([A-Z]{2,})(\\.)(.+)", "\\1", rownames(most_imp_vars))
-# most_imp_vars$continents <- continents
-# most_imp_vars$traits <- rownames(most_imp_vars)
-# setDT(most_imp_vars)
-# most_imp_vars[, traits := sub("([A-Z]{2,})(\\.)(.+)", "\\3", traits)]
-# most_imp_vars[order(continents, -y), .(pi_score = tail(y, n = 5),
-#                                        traits_perm_imp = tail(traits, n = 5)),
-#               by = continents]
 
-# --- Variable selection with wrapper algorithm Boruta ---------------------------------------------
+## Plot permutation importance ----
+most_imp_vars <- readRDS(file.path(data_cache, "most_imp_vars.rds"))
+continents <-
+  sub("([A-Z]{2,})(\\.)(.+)", "\\1", rownames(most_imp_vars))
+most_imp_vars$continents <- continents
+most_imp_vars$traits <- rownames(most_imp_vars)
+setDT(most_imp_vars)
+most_imp_vars[, traits := sub("([A-Z]{2,})(\\.)(.+)", "\\3", traits)]
+most_imp_vars[continents == "NZ", ] %>% 
+  .[order(-y), ]
+
+# most important
+most_imp_vars[order(continents, -y),  five_most_imp := c(head(traits, n = 5), rep(NA, 20)),
+              by = continents]
+
+# least important
+most_imp_vars[order(continents, -y), .(pi_score = tail(y, n = 5),
+                                       traits_least_imp = tail(traits, n = 5)),
+              by = continents]
+
+
+wrap_names <- c(
+  "AUS" = "AUS",
+  "EU" = "EUR",
+  "NOA" = "NA",
+  "NZ" = "NZ"
+)
+
+ggplot(most_imp_vars[order(continents, -y), ],
+       aes(x = as.factor(traits),
+           y = y)) +
+  geom_pointrange(aes(
+    ymin = 0,
+    ymax = y,
+    color = as.factor(continents)
+  )) +
+  geom_text(mapping = aes(
+              x = as.factor(traits),
+              y = y + 0.009,
+              label = five_most_imp
+            ), 
+            size = 6,
+            nudge_x = 0.4) +
+  facet_grid(as.factor(continents), labeller = as_labeller(wrap_names)) +
+  labs(x = "",
+       y = "Permutation importance") +
+  scale_color_d3() +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 16),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.text.y = element_text(family = "Roboto Mono",
+                               size = 12),
+    legend.title = element_text(family = "Roboto Mono",
+                                size = 16),
+    legend.text = element_text(family = "Roboto Mono",
+                               size = 14),
+    strip.text = element_text(family = "Roboto Mono",
+                              size = 14),
+    # panel.grid = element_blank(),
+    legend.position = "none"
+  )
+ggplot2::ggsave(
+  filename = file.path(data_paper,
+                       "Graphs",
+                       "Trait_importance_summary.png"),
+  width = 50,
+  height = 35,
+  units = "cm",
+  dpi = 400
+)
+
+
+# Variable selection with wrapper algorithm Boruta ----
 output <- list()
 for (region in c("AUS", "EU", "NOA", "NZ")) {
   
@@ -209,7 +273,7 @@ for(region in names(boruta_res)) {
 }
 
 
-# --- Brier score ----------------------------------------------------------------------------------
+## Brier score ----
 # Do not use Accuracy but rather Brier score 
 # to evaluate prediction strength of RF Model
 

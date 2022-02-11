@@ -33,12 +33,11 @@ comb_pcoa <- dudi.pco(comb_dist, scannf = FALSE)
 summary(comb_pcoa)
 
 # Factor map with colors for the different continents
-s.label(comb_pcoa$li, clabel = 0.7) # Fig. 2 in the main text
-s.class(comb_pcoa$li,
-  fac = continent_names,
-  col = TRUE
-)
-
+# s.label(comb_pcoa$li, clabel = 0.7) # Fig. 2 in the main text
+# s.class(comb_pcoa$li,
+#   fac = continent_names,
+#   col = TRUE
+# )
 
 ## Quality of trait space ----
 # with Guido Kraemer package
@@ -49,6 +48,10 @@ coRanking::AUC_ln_K(NX)
 
 
 ## Plotting ----
+# Add loads? Eigenvector * sq.root eigenvalue
+# ? comb_pcoa$l1
+comb_pcoa$tab
+
 # Plot scores and hulls for the different continents
 pcoa_scores <- comb_pcoa$li
 pcoa_scores$id <- rownames(pcoa_scores)
@@ -59,6 +62,8 @@ pcoa_scores[, continent := factor(sub("(\\w)(\\_)(.+)", "\\1", id))]
 hull <- pcoa_scores %>%
   group_by(continent) %>%
   slice(chull(A1, A2))
+saveRDS(hull, file.path(data_cache, "hull_pcoa.rds"))
+
 cbb_palette <-
   c(
     "#000000",
@@ -131,47 +136,6 @@ ggsave(
   height = 20,
   units = "cm"
 )
-
-## Specific syndromes ----
-# Australia (upper right corner)
-setDT(hull)
-# right and above the highest NZ coord (upper right) & the lowest righthand NZ coord
-
-# highest NZ coord
-coord1 <- hull[continent == "NZ",] %>%
-  .[order(A2, decreasing = TRUE),] %>%
-  .[1, .(A1, A2)]
-
-# lowest righthand NZ coord (which is also the coord with the highest score on axis1)
-coord2 <- hull[continent == "NZ",] %>%
-  .[order(A1, decreasing = TRUE),] %>%
-  .[1, .(A1, A2)]
-
-# calculate slope and then values on this slope?
-slope <- (coord2$A2 - coord1$A2)/(coord2$A1 - coord1$A1)
-# y2-y1 = m * (x2-x1)
-# if x1 = 0 then we can find the intercept 
-# -> y2-y1 = m*(x2-0)
-# -> y2 = m*(x2) + y1
-
-# calculate intercept
-# y = m * x + b
-intercept <- coord2$A2 - slope*coord2$A1
-
-# get values for Australia (right from highest NZ coord)
-aus_scores_syndrom <-
-  pcoa_scores[A1 > coord$A1 & continent == "AUS", ]
-
-# check for each A1 value (i.e. X-Coordinate) of AUS if it's not enclosed by the NZ space
-aus_scores_syndrom[, x_right_side_fsNZ := (A2 - intercept)/slope]
-aus_scores_syndrom <- aus_scores_syndrom[A1 >= x_right_side_fsNZ, ]
-
-# AUS taxa "above" the other trait spaces in the PCoA plot
-# last two already captured! 
-aus_scores_syndrom <- rbind(aus_scores_syndrom,
-                            pcoa_scores[A2 > coord1$A2 & continent == "AUS", ][1,],
-                            fill = TRUE)
-
 
 # __________________________________________________________________________________________________
 # PERMANOVA ----

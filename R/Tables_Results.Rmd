@@ -50,9 +50,43 @@ def_traits <-
   readRDS(
     "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/def_traits.rds"
   )
-# def_traits_40 <- readRDS("/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/def_traits_40_percent.rds")
+
+# Changing the order how traits are represent (most often in the beginning)
+# TODO: Handle NAs
+# crawling, cylindrical, aquatic ovip
+def_traits[trait %in% c("locom_crawl",
+                        "bf_cylindrical",
+                        "ovip_aqu"),
+           def_t := paste(trait, collapse = ", "),
+           by = c("continent", "group")]
+
+# small size, medium size, gill respiration, herbivore, and univoltinism
+def_traits[trait %in% c("size_small",
+                        "size_medium",
+                        "resp_gil",
+                        "feed_herbivore",
+                        "volt_uni"),
+           def_t := paste(def_t, trait),
+           by = c("continent", "group")]
+
+# tegument respiration
+
+# feed predator
+
+# bf flattened
+
+# respiration with plastron and spiracle, swimming
+
+# filter feeding, body form spherical, body form streamlined, bi /multivoltinism, and locomotion sessil
+
+# terrestrial oviposition
+
 
 def_traits <- unique(def_traits[, .(continent, group, def_traits)])
+
+
+
+
 def_traits[, id := paste0(continent, "_", group)]
 # def_traits_40 <-
 #   unique(def_traits_40[, .(continent, group, def_traits)])

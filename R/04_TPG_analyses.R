@@ -136,15 +136,16 @@ disting_traits <-
 # Calculate nr of traits per tpg for upcoming comparisons
 disting_traits[, nr_traits_group := .N, 
                by = .(continent, group)]
+# 3 to 9 TPGs overall 
 disting_traits[, summary(nr_traits_group), by = c("continent")]
 
-### Overview ----
+# saveRDS(disting_traits,
+#          file = file.path(data_cache, "def_traits.rds"))
 
+### Overview ----
 # for our initial criterion
 disting_traits[, def_traits := paste(trait, collapse = ", "), 
                by = c("continent", "group")]
-saveRDS(disting_traits,
-         file = file.path(data_cache, "def_traits.rds"))
 
 # 16 out of 33 TPGs are characterised by cylindrical, aquatic ovipositon & crawling
 unique(disting_traits[, .(continent, group, def_traits)]) %>% 
@@ -165,46 +166,252 @@ unique(disting_traits[, .(continent, group, def_traits)]) %>%
 # saveRDS(disting_traits,
 #         file = file.path(data_cache, "def_traits_40_percent.rds"))
 
+# add id
+disting_traits[, tpg_id := paste0(continent, "_", group)]
+
 # Defining traits for each TPG long format
 disting_traits_lf <-
-  dcast(disting_traits[, .(continent, group, trait)],
+  dcast(disting_traits[, .(continent, group, tpg_id, trait)],
     ... ~ trait,
     fun.aggregate = fun_binary_length
   )
+# disting_traits_lf[, apply(.SD, 1, function(y) sum(y)), 
+#                   .SDcols = patterns("bf|feed|locom|ovip|resp|size|volt")]
 
-### Are there similarities across continents? ----
-output_tpg <- list()
-for(cont in c("AUS", "EU", "NOA", "NZ")) { # "AUS",
-  groups <- unique(disting_traits[continent == cont, group])
-  similar_tpg <- list()
-  for (i in groups) {
-    trait_comb <-
-      unique(disting_traits[continent == cont & group == i, trait])
-    
-    # use binary coded disting_traits dataset
-    # 1 indicates that the trait is a defining trait based on the previously established criterion
-    tpg <- melt(disting_traits_lf, id.vars = c("continent", "group")) %>%
-      .[value == 1,] %>%
-      .[, n_defTraits := .N, by = .(continent, group)] %>% # Number of defining traits of each TPG
-      .[variable %in% trait_comb,] %>%
-      .[order(continent, group), ] %>%
-      .[, n_subsTraits := .N, by = c("continent", "group")] %>% 
-      .[n_subsTraits == length(trait_comb), ] %>% # Number of the defining traits that should occur 
-      # in other TPGs (i.e. the other TPGs can have additional defining traits)
-      #.[n_defTraits == length(trait_comb), ] %>%  # Number of defining traits of each TPG should be equal to 
-        # the number of the def. traits that are currently searched for, i.e. we obtain the whole set 
-        # of defining traits for a given TPG (i.e. identical TPG across regions)
-      .[uniqueN(continent) == 4, ]  
-    if(nrow(tpg) > 0){
-      similar_tpg[[i]] <- tpg 
-    } 
+# Returns the proportion to which TPGs share the same defining traits
+test <- disting_traits_lf[, apply(.SD, 1, function(y)
+  ifelse(y == 1, names(y), NA)), # select the defining traits
+  .SDcols = patterns("bf|feed|locom|ovip|resp|size|volt")]
+test <- as.data.frame(test)
+# assign id, makes life easier for later 
+names(test) <-  disting_traits_lf$tpg_id
+
+identical_new <- function(x, y) {
+  x <- na.omit(x)
+  y <- na.omit(y)
+  if (length(x) >= length(y)) {
+    equiv <- unique(x) %in% unique(y)
+  } else{
+    equiv <- unique(y) %in% unique(x)
   }
-  output_tpg[[cont]] <- similar_tpg
+  sum(equiv) / length(equiv)
 }
 
-#### Postprocessing ----
-# Get those TPGs that are similar across all continents
-output_tpg4 <- output_tpg
+# get those tpgs that share at least 50 % of defining traits
+comp_tpgs <- combn(names(test), 2)
+
+out <- list()
+for(i in 1:ncol(comp_tpgs)){
+  var1 <- comp_tpgs[, i][[1]]
+  var2 <- comp_tpgs[, i][[2]]
+  out[[paste0(var1, "_", var2)]] <- identical_new(test[, var1], test[, var2])
+}
+out <- unlist(out)
+share_traits <- as.data.table(out, keep.rownames = TRUE)
+setnames(share_traits,
+         "out",
+         "amount_shared_traits")
+share_traits[, `:=`(
+  tpg = sub("(.+\\_[0-9]{1,})(\\_)(.+\\_[0-9]{1,})", "\\1", rn),
+  tpg_match = sub("(.+\\_[0-9]{1,})(\\_)(.+\\_[0-9]{1,})", "\\3", rn)
+)]
+share_traits[, continent_match := sub("(.+)(\\_)(.+)", "\\1", tpg_match)]
+
+# tpgs that occur on three or four continents and share at least 37.5 % (i.e, at least 3 of 8)
+# of their defining traits
+tpgs_shared <- share_traits[amount_shared_traits >= 0.375, ] %>%
+  .[, paste0(unique(continent_match), collapse = ","), by = tpg] %>%
+  .[V1 == "AUS,EU,NOA,NZ" | V1 == "EU,NOA,NZ", tpg]
+tpg_across_cont <-
+  share_traits[tpg %in% tpgs_shared &
+                 amount_shared_traits >= 0.375, tpg_match]
+
+## Defining traits that occur most often ----
+# this is the basis for the selection afterwards
+disting_traits[tpg_id %in% tpg_across_cont, .N, by = trait] %>% 
+  .[order(-N), ]
+
+## TPG similarity across all continents ----
+# Various combinations of bf_cylindrical, locom_crawl, ovip_aqu
+# additionally: , feed_predator,resp_teg, resp_gil, size_medium, feed_herbivore
+disting_traits[tpg_id %in% tpg_across_cont &
+                 grepl("(?=.*bf\\_cylindrical)(?=.*ovip\\_aqu)(?=.*locom\\_crawl)",
+                       def_traits,
+                       perl = TRUE),]
+
+## Associated traits that occurred on all continents with these traits ---- 
+# - size small (mostly with locomotion crawling, EU1 is the exception;
+# most of the TPGs have bf_cylindrical, exceptions are NZ9, NOA6 and NOA7)
+# - volt_uni (some don't have locom_crawl, e.g. NZ1)
+# - size_medium
+# - resp_gil
+# - feed_herbivore
+disting_traits[tpg_id %in% tpg_across_cont &
+                 grepl("(?=.*bf\\_cylindrical)(?=.*ovip\\_aqu)(?=.*size\\_small)",
+                       def_traits,
+                       perl = TRUE),]
+
+disting_traits[tpg_id %in% tpg_across_cont &
+                 grepl("(?=.*ovip_aqu)(?=.*locom_crawl)(?=.*size\\_small)",
+                       def_traits,
+                       perl = TRUE),] %>%
+  .[grepl("bf_flattened", def_traits), ]
+
+disting_traits[tpg_id %in% tpg_across_cont &
+                 grepl("(?=.*bf\\_cylindrical)(?=.*ovip\\_aqu)(?=.*volt\\_uni)",
+                       def_traits,
+                       perl = TRUE),]
+
+disting_traits[tpg_id %in% tpg_across_cont &
+                 grepl("(?=.*bf\\_cylindrical)(?=.*ovip\\_aqu)(?=.*size_medium)",
+                       def_traits,
+                       perl = TRUE),]
+
+disting_traits[tpg_id %in% tpg_across_cont &
+                 grepl("(?=.*locom\\_crawl)(?=.*ovip\\_aqu)(?=.*resp_gil)",
+                       def_traits,
+                       perl = TRUE),]
+
+disting_traits[tpg_id %in% tpg_across_cont &
+                 grepl("(?=.*bf\\_cylindrical)(?=.*ovip\\_aqu)(?=.*feed_herbivore)",
+                       def_traits,
+                       perl = TRUE),]
+
+# Feed predator is somehow on the edge (i.e. TPGs differ from each other relativly strongly)
+# occurs in TPGsin EU, NOA & NZ
+# in AUS only with ovip_ter & size large (different to many other TPGs that have predator)
+disting_traits[tpg_id %in% tpg_across_cont &
+                 grepl("(?=.*bf\\_cylindrical)(?=.*ovip\\_aqu)(?=.*feed_predator)",
+                       def_traits,
+                       perl = TRUE),]
+
+disting_traits[tpg_id %in% tpg_across_cont &
+                 grepl("(?=.*feed_predator)",
+                       def_traits,
+                       perl = TRUE),] %>% 
+  .[grepl("(?=.*locom_crawl)(?=.*bf\\_cylindrical)",
+          def_traits,
+          perl = TRUE), ]
+
+## Three region similarity ----
+
+# resp_teg in TPGs in EU, NOA & NZ
+disting_traits[tpg_id %in% tpg_across_cont &
+                 grepl("(?=.*bf\\_cylindrical)(?=.*ovip\\_aqu)(?=.*resp_teg)",
+                       def_traits,
+                       perl = TRUE),]
+
+# Two region similarity
+
+# bf_flattened (EU and NOA)
+disting_traits[tpg_id %in% tpg_across_cont &
+                 grepl("(?=.*bf_flattened)",
+                       def_traits,
+                       perl = TRUE), ]
+
+# resp_pls_spi (between EU and NZ)
+# locom_swim, size_small, feed predator ovip_aqu, bf_cylindrical
+disting_traits[tpg_id %in% tpg_across_cont &
+                 grepl("(?=.*resp\\_pls\\_spi)",
+                       def_traits,
+                       perl = TRUE), ]
+
+# feed_shredder -> part of the combination of defining traits that occurs on all continents
+disting_traits[tpg_id %in% tpg_across_cont &
+                 grepl("(?=.*feed\\_shredder)",
+                       def_traits,
+                       perl = TRUE), ]
+
+# size_large -> not really similar TPGs?
+disting_traits[tpg_id %in% tpg_across_cont &
+                 grepl("(?=.*size\\_large)",
+                       def_traits,
+                       perl = TRUE), ]
+
+## Unique TPGs ----
+# Except for ovip_ter, those others are part of the already mentioned TPGs
+# ovip ter
+disting_traits[tpg_id %in% tpg_across_cont &
+                 grepl("(?=.*ovip\\_ter)",
+                       def_traits,
+                       perl = TRUE), ]
+
+# feed filter
+disting_traits[tpg_id %in% tpg_across_cont &
+                 grepl("(?=.*feed\\_filter)",
+                       def_traits,
+                       perl = TRUE), ]
+
+# locom_sessil
+disting_traits[tpg_id %in% tpg_across_cont &
+                 grepl("(?=.*locom\\_sessil)",
+                       def_traits,
+                       perl = TRUE), ]
+
+# bf_spherical
+disting_traits[tpg_id %in% tpg_across_cont &
+                 grepl("(?=.*bf\\_spherical)",
+                       def_traits,
+                       perl = TRUE), ]
+
+# feed_gatherer -> largely similar to EU_TPG8
+disting_traits[tpg_id %in% tpg_across_cont &
+                 grepl("(?=.*feed\\_gatherer)",
+                       def_traits,
+                       perl = TRUE) | (tpg_id == "EU_8"),]
+
+# look at those TPGs that don't really share traits with other TPGs (the ones
+# we looked at so far share at least 37.5 percent)
+disting_traits[, .N, by = trait] %>% 
+  .[order(-N), ]
+
+# volt bi multi -> part of the aformentioned TPGs
+disting_traits[grepl("(?=.*volt\\_bi\\_multi)",
+                       def_traits,
+                       perl = TRUE), ]
+
+# bf_streamlined -> part of the aformentioned TPGs
+disting_traits[grepl("(?=.*bf\\_streamlined)",
+                       def_traits,
+                       perl = TRUE), ]
+
+## Non-defining traits for TPGs ----
+unique(trait_CONT$trait[!trait_CONT$trait %in% disting_traits$trait])
+
+
+### Are there similarities across continents? ----
+# output_tpg <- list()
+# for(cont in c("AUS", "EU", "NOA", "NZ")) { # "AUS",
+#   groups <- unique(disting_traits[continent == cont, group])
+#   similar_tpg <- list()
+#   for (i in groups) {
+#     trait_comb <-
+#       unique(disting_traits[continent == cont & group == i, trait])
+#     
+#     # use binary coded disting_traits dataset
+#     # 1 indicates that the trait is a defining trait based on the previously established criterion
+#     tpg <- melt(disting_traits_lf, id.vars = c("continent", "group")) %>%
+#       .[value == 1,] %>%
+#       .[, n_defTraits := .N, by = .(continent, group)] %>% # Number of defining traits of each TPG
+#       .[variable %in% trait_comb,] %>%
+#       .[order(continent, group), ] %>%
+#       .[, n_subsTraits := .N, by = c("continent", "group")] %>% 
+#       .[n_subsTraits == length(trait_comb), ] %>% # Number of the defining traits that should occur 
+#       # in other TPGs (i.e. the other TPGs can have additional defining traits)
+#       #.[n_defTraits == length(trait_comb), ] %>%  # Number of defining traits of each TPG should be equal to 
+#         # the number of the def. traits that are currently searched for, i.e. we obtain the whole set 
+#         # of defining traits for a given TPG (i.e. identical TPG across regions)
+#       .[uniqueN(continent) == 4, ]  
+#     if(nrow(tpg) > 0){
+#       similar_tpg[[i]] <- tpg 
+#     } 
+#   }
+#   output_tpg[[cont]] <- similar_tpg
+# }
+# 
+# #### Postprocessing ----
+# # Get those TPGs that are similar across all continents
+# output_tpg4 <- output_tpg
 # simtpg_across_cont <- lapply(output_tpg4, rbindlist) %>% 
 #   .[["AUS"]] %>% 
 #   .[, .(continent, group)] %>% 
