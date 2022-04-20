@@ -5,7 +5,7 @@ knit: (function(inputFile, encoding) {
   rmarkdown::render(inputFile, encoding = encoding, 
                     output_dir = "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Paper/Tables/") })
 ---
-  
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -21,8 +21,8 @@ library(htmltools)
 # Continental trait data
 
 ## Table 2
-Overview of families of aggregated continental trait data. Shown are the total number of families per trait dataset and the number of families per order.
 
+Overview of families of aggregated continental trait data. Shown are the total number of families per trait dataset and the number of families per order.
 
 ```{r, echo = FALSE, message = FALSE}
 trait_data_bind <-
@@ -75,6 +75,21 @@ eu_clim_summary <-
         fun.aggregate = length) %>%
   .[order(climateregion),]
 
+eu_clim_paper <- melt(eu_clim_summary, 
+     id.vars = c("order",
+                 "nr_genera_cr_order",
+                 "nr_genera_cr",
+                 "climateregion"),
+     variable.name = "family",
+     value.name = "nr_genera_used")
+eu_clim_paper <- eu_clim_paper[nr_genera_used != 0,] %>%
+  .[order(climateregion, order), .(climateregion, order, family, nr_genera_used)]
+
+# save for paper
+fwrite(eu_clim_paper,
+       file = "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Output/genera_eu_cr.csv", sep = ";")
+
+# HTML output
 reactable(
   eu_clim_summary,
   columns = list(
@@ -87,7 +102,6 @@ reactable(
   filterable = TRUE,
   highlight = TRUE
 )
-
 ```
 
 ### Table 4:
@@ -112,6 +126,21 @@ noa_clim_summary <-
         fun.aggregate = length) %>%
   .[order(climateregion),]
 
+# save for paper
+noa_clim_paper <- melt(noa_clim_summary, 
+     id.vars = c("order",
+                 "nr_genera_cr_order",
+                 "nr_genera_cr",
+                 "climateregion"),
+     variable.name = "family",
+     value.name = "nr_genera_used")
+noa_clim_paper <- noa_clim_paper[nr_genera_used != 0,] %>%
+  .[order(climateregion, order), .(climateregion, order, family, nr_genera_used)]
+
+fwrite(noa_clim_paper,
+       file = "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Output/genera_noa_cr.csv", sep = ";")
+
+# HTML
 reactable(
   noa_clim_summary,
   columns = list(

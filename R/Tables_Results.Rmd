@@ -2,7 +2,8 @@
 title: "Tables convergence trait profiles - Functional space, TPGs, and most important traits"
 output: html_document
 knit: (function(inputFile, encoding) {
-  rmarkdown::render(inputFile, encoding = encoding, output_dir = "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Paper/Tables/") })
+  rmarkdown::render(inputFile, encoding = encoding, 
+                    output_dir = "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Paper/Tables/") })
 ---
 
 ```{r setup, include=FALSE}
@@ -51,62 +52,91 @@ def_traits <-
     "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/def_traits.rds"
   )
 
-# Changing the order how traits are represent (most often in the beginning)
-# TODO: Handle NAs
-# crawling, cylindrical, aquatic ovip
-def_traits[trait %in% c("locom_crawl",
-                        "bf_cylindrical",
-                        "ovip_aqu"),
-           def_t := paste(trait, collapse = ", "),
-           by = c("continent", "group")]
+# create lookup_table for traits
+lookup_traits <- data.table(
+  trait = unique(def_traits$trait),
+  trait_label = c(
+    "cylindrical",
+    "aquatic oviposition",
+    "crawling",
+    "small",
+    "gills",
+    "univoltinism",
+    "medium",
+    "swimming",
+    "plastron and spiracle",
+    "predator",
+    "streamlined",
+    "terrestrial oviposition",
+    "large",
+    "shredder",
+    "herbivore",
+    "tegument",
+    "flattened",
+    "gatherer",
+    "filterer",
+    "sessil",
+    "bi/multivoltinism",
+    "spherical",
+    "burrow"
+  )
+)
+def_traits[lookup_traits, 
+           trait_label := i.trait_label, 
+           on = "trait"]
 
-# small size, medium size, gill respiration, herbivore, and univoltinism
-def_traits[trait %in% c("size_small",
-                        "size_medium",
-                        "resp_gil",
-                        "feed_herbivore",
-                        "volt_uni"),
-           def_t := paste(def_t, trait),
-           by = c("continent", "group")]
+# Arrange traits 
+# Alternative arrangement according to their order how often traits occur across continents
+# def_traits %>% arrange(factor(
+#   trait,
+#   levels = c(
+#     "locom_crawl",
+#     "bf_cylindrical",
+#     "ovip_aqu",
+#     "size_small",
+#     "size_medium",
+#     "resp_gil",
+#     "feed_herbivore",
+#     "volt_uni",
+#     "resp_teg",
+#     "feed_predator",
+#     "bf_flattened",
+#     "resp_pls_spi",
+#     "locom_swim",
+#     "feed_filter",
+#     "bf_spherical",
+#     "bf_streamlined",
+#     "volt_bi_multi",
+#     "locom_sessil",
+#     "ovip_ter"
+#   )
+# )) %>%
+#   .[, paste(trait, collapse = ", "),
+def_traits <- def_traits %>% arrange(factor(
+  grouping_feature,
+  levels = c(
+    "locom",
+    "bf",
+    "ovip",
+    "size",
+    "feed",
+    "resp",
+    "volt"
+))) %>%
+  .[, paste(trait_label, collapse = ", "),
+    by = c("continent", "group")]
+setnames(def_traits,
+         "V1",
+         "defining_tc")
 
-# tegument respiration
-
-# feed predator
-
-# bf flattened
-
-# respiration with plastron and spiracle, swimming
-
-# filter feeding, body form spherical, body form streamlined, bi /multivoltinism, and locomotion sessil
-
-# terrestrial oviposition
-
-
-def_traits <- unique(def_traits[, .(continent, group, def_traits)])
-
-
-
-
-def_traits[, id := paste0(continent, "_", group)]
-# def_traits_40 <-
-#   unique(def_traits_40[, .(continent, group, def_traits)])
-# def_traits_40[, id := paste0(continent, "_", group)]
-
-# get groups that contain first pattern that was observed across all continents
-# sim_tpgs <-
-#   unique(def_traits[, .(continent, group, def_traits)]) %>%
-#   .[grepl("(?=.*cylindrical)(?=.*aqu)(?=.*crawl)", def_traits, perl = TRUE), paste0(continent, "_", group)]
-# 
-# sim_tpgs_40 <-
-#   unique(def_traits_40[, .(continent, group, def_traits)]) %>%
-#   .[grepl("(?=.*small)(?=.*predator)(?=.*spi.*)", def_traits, perl = TRUE), paste0(continent, "_", group)]
 reactable(
-  def_traits[, .(continent, group, def_traits)],
+  def_traits[order(continent, group), 
+             .(continent, group, defining_tc)],
   columns = list(
     continent = colDef(name = "Continent", width = 100),
     group = colDef(name = "TPG", width = 60),
-    def_traits = colDef(
-      name = "Defining traits",
+    defining_tc = colDef(
+      name = "Defining trait combinations",
       style = function(value) {
         if (grepl("(?=.*cylindrical)(?=.*aqu)(?=.*crawl)", value, perl = TRUE)) {
           list(background = "steelblue")
@@ -121,7 +151,7 @@ reactable(
   highlight = TRUE,
   defaultPageSize = 33
 )
-
+# fwrite(def_traits[order(continent, group), ], file = "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Output/def_traits.csv", sep = ";")
 ```
 
 ## Table 7
@@ -178,13 +208,61 @@ reactable(
 
 ## Table 8
 
+Clustering the complete New Zealand trait dataset
+
+```{r, echo = FALSE}
+def_traits_NZ <-
+  readRDS(
+    "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/NZ_complete_clustering.rds"
+  )
+
+# Use lookup table from Table 6
+def_traits_NZ[lookup_traits, 
+           trait_label := i.trait_label, 
+           on = "trait"]
+def_traits_NZ <- def_traits_NZ %>% arrange(factor(
+  grouping_feature,
+  levels = c(
+    "locom",
+    "bf",
+    "ovip",
+    "size",
+    "feed",
+    "resp",
+    "volt"
+  ))) %>%
+  .[, paste(trait_label, collapse = ", "),
+    by = group] %>% 
+  .[order(group), ]
+setnames(def_traits_NZ,
+         "V1",
+         "defining_tc")
+reactable(
+  def_traits_NZ[order(group), 
+             .(group, defining_tc)],
+  columns = list(
+    group = colDef(name = "TPG", width = 60),
+    defining_tc = colDef(
+      name = "Defining trait combinations"
+    )
+  ),
+  filterable = TRUE,
+  highlight = TRUE,
+  defaultPageSize = 14
+)
+
+fwrite(def_traits_NZ[order(group),],
+       file = "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Output/def_traits_NZ.csv", sep = ";")
+```
+
+## Table 9
+
 Families classified as outliers based on their trait profiles by the single linkage hierarchical cluster analysis.
 
 ```{r, echo = FALSE}
 outliers <- readRDS("/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/outliers.rds")
 setcolorder(outliers,
             c("continent", "group", "family", "order"))
-
 reactable(
   outliers[order(continent, group), ],
   columns = list(
@@ -198,11 +276,46 @@ reactable(
   defaultPageSize = 11
 )
 
+# long format
+outliers_lf <-
+  melt(
+    outliers,
+    id.vars = c("continent", "group", "family", "order"),
+    variable.name = "trait",
+    value.name = "affinity"
+  )
+outliers_lf[lookup_traits,
+            trait_label := i.trait_label,
+            on = "trait"]
+outliers_lf[, grouping_feature := sub("([a-z]{1,})(\\_)(.+)", "\\1", trait)]
+outliers_lf <- outliers_lf[affinity > 0.5, ]
+outliers_lf[trait == "volt_semi", trait_label := "semivoltinism"]
+outliers_lf[trait == "locom_burrow", trait_label := "burrowing"]
+outliers_lf <- outliers_lf %>% arrange(factor(
+  grouping_feature,
+  levels = c(
+    "locom",
+    "bf",
+    "ovip",
+    "size",
+    "feed",
+    "resp",
+    "volt"
+  ))) %>%
+  .[, paste(trait_label, collapse = ", "),
+    by = c("continent", "group", "family")] %>% 
+  .[order(continent, group), ]
+setnames(outliers_lf,
+         "V1",
+         "defining_tc")
+
+#fwrite(outliers_lf,
+#       file = "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Output/outliers.csv", sep = ";")
 ```
 
 # Most and least important traits for TPG selection
 
-## Table 9
+## Table 10
 
 Most important traits according to the permutation importance from the random forest models and according to the selection by the Boruta algorithm. Order reflects the ranking obtained from both selection methods.
 
@@ -264,7 +377,7 @@ reactable(
 
 ```
 
-## Table 10
+## Table 11
 
 Least important traits according to the permutation importance from the random forest models and according to the selection by the Boruta algorithm. Order reflects the ranking obtained from both selection methods.
 
@@ -285,5 +398,4 @@ reactable(
   highlight = TRUE,
   defaultPageSize = 20
 )
-
 ```

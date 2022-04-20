@@ -29,6 +29,7 @@ names(trait_data_ww) <- sub(
   "\\3",
   names(trait_data_ww)
 )
+names(trait_data_ww)[5] <- "SA"
 
 # Arrange colnames according to traits
 lapply(
@@ -79,7 +80,7 @@ saveRDS(trait_data_bind,
 # ___________________________________________________________________________
 preproc_traits <- list()
 
-for (region in c("AUS", "EU", "NOA", "NZ")) {
+for (region in c("AUS", "EU", "NOA", "NZ", "SA")) {
   data <- trait_data_ww[[region]]
   data[, order := NULL]
 

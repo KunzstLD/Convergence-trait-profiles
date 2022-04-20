@@ -52,7 +52,8 @@ tpg_names <- c(
   "AUS" = "AUS",
   "EU" = "EUR",
   "NOA" = "NA",
-  "NZ" = "NZ"
+  "NZ" = "NZ",
+  "SA" = "SA"
 )
 ggplot(trait_CONT_wf,
        aes(x = as.factor(order),
@@ -102,7 +103,7 @@ ggplot2::ggsave(
                          "Graphs",
                          "Tax_signal_summary.png"),
     width = 42,
-    height = 21,
+    height = 30,
     units = "cm",
     dpi = 600
   )
@@ -123,13 +124,10 @@ trait_CONT[affinity > 0.5,
 disting_traits <-
   unique(trait_CONT[prop_taxa_high_aff >= 0.5, ] %>%
     .[order(-prop_taxa_high_aff), .(
-      continent,
-      group,
-      trait,
       grouping_feature,
       prop_taxa_high_aff,
       nr_families
-    )], by = c("continent", "group", "trait"))
+    ), by = c("continent", "group", "trait")])
 disting_traits <-
   disting_traits[order(continent, group, -prop_taxa_high_aff), ]
 
@@ -138,7 +136,6 @@ disting_traits[, nr_traits_group := .N,
                by = .(continent, group)]
 # 3 to 9 TPGs overall 
 disting_traits[, summary(nr_traits_group), by = c("continent")]
-
 # saveRDS(disting_traits,
 #          file = file.path(data_cache, "def_traits.rds"))
 
@@ -147,7 +144,7 @@ disting_traits[, summary(nr_traits_group), by = c("continent")]
 disting_traits[, def_traits := paste(trait, collapse = ", "), 
                by = c("continent", "group")]
 
-# 16 out of 33 TPGs are characterised by cylindrical, aquatic ovipositon & crawling
+# 17 out of 39 TPGs are characterised by cylindrical, aquatic ovipositon & crawling
 unique(disting_traits[, .(continent, group, def_traits)]) %>% 
   .[grepl("(?=.*cylindrical)(?=.*aqu)(?=.*crawl)", def_traits, perl = TRUE), ]
 
@@ -161,11 +158,6 @@ unique(disting_traits[, .(continent, group, def_traits)]) %>%
 unique(disting_traits[, .(continent, group, def_traits)]) %>% 
   .[grepl("(?=.*flattened)", def_traits, perl = TRUE), ]
 
-# lower criterion (40 % of taxa within TPG express certain trait with affinity > 0.5)
-# disting_traits[, def_traits := paste(trait, collapse = ", "), by = c("continent", "group")]
-# saveRDS(disting_traits,
-#         file = file.path(data_cache, "def_traits_40_percent.rds"))
-
 # add id
 disting_traits[, tpg_id := paste0(continent, "_", group)]
 
@@ -178,11 +170,13 @@ disting_traits_lf <-
 # disting_traits_lf[, apply(.SD, 1, function(y) sum(y)), 
 #                   .SDcols = patterns("bf|feed|locom|ovip|resp|size|volt")]
 
+### Detailed look ----
 # Returns the proportion to which TPGs share the same defining traits
 test <- disting_traits_lf[, apply(.SD, 1, function(y)
   ifelse(y == 1, names(y), NA)), # select the defining traits
   .SDcols = patterns("bf|feed|locom|ovip|resp|size|volt")]
 test <- as.data.frame(test)
+
 # assign id, makes life easier for later 
 names(test) <-  disting_traits_lf$tpg_id
 
@@ -221,7 +215,7 @@ share_traits[, continent_match := sub("(.+)(\\_)(.+)", "\\1", tpg_match)]
 # of their defining traits
 tpgs_shared <- share_traits[amount_shared_traits >= 0.375, ] %>%
   .[, paste0(unique(continent_match), collapse = ","), by = tpg] %>%
-  .[V1 == "AUS,EU,NOA,NZ" | V1 == "EU,NOA,NZ", tpg]
+  .[V1 == "AUS,EU,NOA,NZ,SA" | V1 == "EU,NOA,NZ,SA", tpg]
 tpg_across_cont <-
   share_traits[tpg %in% tpgs_shared &
                  amount_shared_traits >= 0.375, tpg_match]
@@ -301,20 +295,13 @@ disting_traits[tpg_id %in% tpg_across_cont &
                        def_traits,
                        perl = TRUE),]
 
-# Two region similarity
-
-# bf_flattened (EU and NOA)
+# bf_flattened (EU, NOA, SA)
 disting_traits[tpg_id %in% tpg_across_cont &
                  grepl("(?=.*bf_flattened)",
                        def_traits,
                        perl = TRUE), ]
 
-# resp_pls_spi (between EU and NZ)
-# locom_swim, size_small, feed predator ovip_aqu, bf_cylindrical
-disting_traits[tpg_id %in% tpg_across_cont &
-                 grepl("(?=.*resp\\_pls\\_spi)",
-                       def_traits,
-                       perl = TRUE), ]
+# Two region similarity
 
 # feed_shredder -> part of the combination of defining traits that occurs on all continents
 disting_traits[tpg_id %in% tpg_across_cont &

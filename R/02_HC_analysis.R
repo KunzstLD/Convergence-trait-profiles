@@ -27,7 +27,7 @@ traits_ww <- readRDS(file.path(
 hc_output <- list()
 
 set.seed(1234)
-for (region in c("AUS", "EU", "NOA", "NZ")) {
+for (region in c("AUS", "EU", "NOA", "NZ", "SA")) {
   dat <- traits_ww[[region]]
   
   # Create dist. matrix using Overlap index Manly ---------------------
@@ -119,15 +119,17 @@ hclust_methods <-
     "centroid",
     "ward.D2"
   )
-inv_traits_dendlist <- dendlist()
 
-for (i in seq_along(hclust_methods)) {
+inv_traits_dendlist <- dendlist()
+dend_pl <- list()
+for (i in hclust_methods) {
   tmp_dend <- dist.ktab(traits_ww[["AUS"]], type = "F") %>%
     as.matrix(.) %>%
     as.dist(.) %>%
-    hclust(., method = hclust_methods[i]) %>%
+    hclust(., method = i) %>%
     as.dendrogram(.)
 
+  dend_pl[[i]] <- tmp_dend  
   inv_traits_dendlist <- dendlist(inv_traits_dendlist, tmp_dend)
 }
 names(inv_traits_dendlist) <- hclust_methods

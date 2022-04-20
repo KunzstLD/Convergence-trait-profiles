@@ -8,7 +8,7 @@ trait_data_bind <- readRDS(file.path(
   "trait_data_ww_bind.rds"
 ))
 
-# preproc
+# Preproc
 trait_data_bind[, id := paste0(continent, "_", family)]
 continent_names <- factor(trait_data_bind$continent)
 trait_data_bind_cp <- copy(trait_data_bind)
@@ -29,8 +29,14 @@ comb_dist <- dist.ktab(trait_data_bind, type = "F")
 is.euclid(comb_dist)
 
 # PcOA
-comb_pcoa <- dudi.pco(comb_dist, scannf = FALSE)
+comb_pcoa <- dudi.pco(comb_dist, scannf = FALSE, nf = 25)
 summary(comb_pcoa)
+
+# Explained variance
+# 10 axis explain more than 80 %
+# 5 axis around 56 %
+sum(comb_pcoa$eig[1:10])/sum(comb_pcoa$eig)
+sum(comb_pcoa$eig[1:5])/sum(comb_pcoa$eig)
 
 # Factor map with colors for the different continents
 # s.label(comb_pcoa$li, clabel = 0.7) # Fig. 2 in the main text
@@ -41,6 +47,7 @@ summary(comb_pcoa)
 
 ## Quality of trait space ----
 # with Guido Kraemer package
+# (strangely 25 axis do not reveal a 100 % quality of trait space)
 Q <- coranking(Xi = comb_dist, 
                X = comb_pcoa$li[, 1:2]) 
 NX <- coRanking::R_NX(Q)
@@ -53,10 +60,11 @@ coRanking::AUC_ln_K(NX)
 comb_pcoa$tab
 
 # Plot scores and hulls for the different continents
-pcoa_scores <- comb_pcoa$li
+pcoa_scores <- comb_pcoa$li[1:2]
 pcoa_scores$id <- rownames(pcoa_scores)
 setDT(pcoa_scores)
 pcoa_scores[, continent := factor(sub("(\\w)(\\_)(.+)", "\\1", id))]
+saveRDS(pcoa_scores, file = file.path(data_cache, "pcoa_scores.rds"))
 
 # Hulls for each continent
 hull <- pcoa_scores %>%
@@ -64,66 +72,37 @@ hull <- pcoa_scores %>%
   slice(chull(A1, A2))
 saveRDS(hull, file.path(data_cache, "hull_pcoa.rds"))
 
-cbb_palette <-
-  c(
-    "#000000",
-    "#E69F00",
-    "#56B4E9",
-    "#097e5e",
-    "#F0E442",
-    "#0072B2",
-    "#D55E00",
-    "#CC79A7"
-  )
-ggplot(pcoa_scores, aes(x = A1, y = A2, fill = continent)) +
-  geom_point(alpha = 0.2) +
-  geom_polygon(
-    data = hull, alpha = 0.4,
-    aes(fill = continent)
-  ) +
-  scale_fill_manual(
-    values = cbb_palette,
-    name = "Continent",
-    labels = c("AUS", "EU", "NA", "NZ")
-  ) +
-  labs(
-    x = paste0(
-      "Axis 1",
-      " (",
-      round(
-        comb_pcoa$eig[1] / sum(comb_pcoa$eig) * 100,
-        digits = 2
-      ),
-      "%)"
-    ),
-    y = paste0("Axis 2", " (", round(
-      comb_pcoa$eig[2] / sum(comb_pcoa$eig) * 100,
-      digits = 2
-    ), "%)")
-  ) +
+# plot
+ggplot(pcoa_scores, aes(x = A1, y = A2)) +
+  geom_point(alpha = 0.15) +
+  geom_polygon(data = hull, alpha = 0.05,
+               aes(color = continent)) +
+  scale_color_d3(name = "Continent",
+                labels = c("AUS", "EUR", "NA", "NZ", "SA")) +
+  labs(x = paste0("Axis 1",
+                  " (",
+                  round(
+                    comb_pcoa$eig[1] / sum(comb_pcoa$eig) * 100,
+                    digits = 2
+                  ),
+                  "%)"),
+       y = paste0("Axis 2", " (", round(
+         comb_pcoa$eig[2] / sum(comb_pcoa$eig) * 100,
+         digits = 2
+       ), "%)")) +
   theme_bw() +
   theme(
     axis.title = element_text(size = 16),
-    axis.text.x = element_text(
-      family = "Roboto Mono",
-      size = 14
-    ),
-    axis.text.y = element_text(
-      family = "Roboto Mono",
-      size = 14
-    ),
-    legend.title = element_text(
-      family = "Roboto Mono",
-      size = 16
-    ),
-    legend.text = element_text(
-      family = "Roboto Mono",
-      size = 14
-    ),
-    strip.text = element_text(
-      family = "Roboto Mono",
-      size = 14
-    ),
+    axis.text.x = element_text(family = "Roboto Mono",
+                               size = 14),
+    axis.text.y = element_text(family = "Roboto Mono",
+                               size = 14),
+    legend.title = element_text(family = "Roboto Mono",
+                                size = 16),
+    legend.text = element_text(family = "Roboto Mono",
+                               size = 14),
+    strip.text = element_text(family = "Roboto Mono",
+                              size = 14),
     panel.grid = element_blank()
   )
 ggsave(
@@ -136,6 +115,61 @@ ggsave(
   height = 20,
   units = "cm"
 )
+
+
+# Contour/density plot
+pl <- ggplot(pcoa_scores, aes(x = A1, y = A2)) +
+  stat_density_2d(aes(color = ..level..),
+                  bins = 4) +
+  geom_point(alpha = 0.15) +
+  scale_color_viridis_c() +
+  labs(x = paste0("Axis 1",
+                  " (",
+                  round(
+                    comb_pcoa$eig[1] / sum(comb_pcoa$eig) * 100,
+                    digits = 2
+                  ),
+                  "%)"),
+       y = paste0("Axis 2", " (", round(
+         comb_pcoa$eig[2] / sum(comb_pcoa$eig) * 100,
+         digits = 2
+       ), "%)")) +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 16),
+    axis.text.x = element_text(family = "Roboto Mono",
+                               size = 14),
+    axis.text.y = element_text(family = "Roboto Mono",
+                               size = 14),
+    legend.title = element_text(family = "Roboto Mono",
+                                size = 16),
+    legend.text = element_text(family = "Roboto Mono",
+                               size = 14),
+    strip.text = element_text(family = "Roboto Mono",
+                              size = 14),
+    panel.grid = element_blank()
+  )
+# Interactive view with plotly
+ggplotly(pl)
+
+# Calculate with kde to get exact contour lines
+kde_traits <- kde(pcoa_scores[, .(A1, A2)])
+plot(kde_traits, cont = c(25, 50, 75))
+
+# Get level for 75 % and 50 % (i.e. 25 % contour line and 50 % contour line)
+level_75 <- kde_traits$cont[names(kde_traits$cont) == "75%"]
+level_50 <- kde_traits$cont[names(kde_traits$cont) == "50%"]
+
+# Identify high density regions/points
+estimate <- kde(pcoa_scores[, .(A1, A2)], eval.points = pcoa_scores[, .(A1, A2)])$estimate
+
+# 3.3 is the 25 % contour line (i.e. smallest region that contains 25 % probability mass) in the plot
+contour_25 <- as.numeric(names(estimate[estimate >= level_75]))
+contour_50 <- as.numeric(names(estimate[estimate >= level_50]))
+saveRDS(contour_25,
+        file.path(data_cache, "contour_25_TS.rds"))
+saveRDS(contour_50,
+        file.path(data_cache, "contour_50_TS.rds"))
 
 # __________________________________________________________________________________________________
 # PERMANOVA ----

@@ -66,7 +66,6 @@ lookup_gf <- data.table(
     "body form"
   )
 )
-
 global_dist <- list()
 for (i in names(hc_output_ww)) {
   gf_intm <- data.table(
@@ -439,13 +438,73 @@ ggplot2::ggsave(
   units = "cm"
 )
 
+
+#*****************************************************#
+## SA ----
+#*****************************************************#
+trait_SA <- trait_data_ww$Trait_SA_assigned_agg.rds
+trait_SA[trait_profile_groups$SA, group := i.group,
+         on = "family"]
+
+# Change col order
+setcolorder(trait_SA, des_traits_order)
+
+# Save for RF analyses
+saveRDS(object = trait_SA,
+        file = file.path(data_cache, "trait_SA_with_groups.rds"))
+
+# Order families according to dendrogram
+trait_SA[, family := factor(family, levels = labels(dendrograms$SA))]
+trait_SA_lf <- melt(
+  trait_SA,
+  id.vars = c("family", "order", "group"),
+  variable.name = "trait",
+  value.name = "affinity"
+)
+trait_SA_lf[, grouping_feature := sub("([a-z]{1,})(\\_)(.+)", "\\1", trait)] 
+trait_SA_lf[, group := factor(group)]
+
+# Create trait label for plotting
+trait_SA_lf[, trait_label := as.character(sub("([a-z]{1,})(\\_)(.+)", "\\3", trait))]
+trait_SA_lf[, trait_label := factor(trait_label, levels = unique(trait_label))]
+
+# names for grouping features 
+grouping_feature_names <- c(
+  "feed" = "Feeding mode",
+  "locom" = "Locomotion",
+  "resp" = "Respiration",
+  "size" = "Body size",
+  "volt" = "Voltinism",
+  "bf" = "Body form",
+  "ovip" = "Oviposition",
+  "1" = "TPG 1",
+  "2" = "TPG 2",
+  "3" = "TPG 3",
+  "4" = "TPG 4",
+  "5" = "TPG 5",
+  "6" = "TPG 6"
+)
+
+# Plot TPGs and expressed traits
+fun_heatmap_single_cont(data = trait_SA_lf)+
+  ggtitle("TPGs SA")
+ggplot2::ggsave(
+  filename = file.path(data_paper,
+                       "Graphs", 
+                       "Heatmap_tpgs_SA.png"),
+  width = 50,
+  height = 40,
+  units = "cm"
+)
+
 # Save trait data with group assignments for further analyses ----
 trait_CONT <- rbind(trait_AUS_lf,
                     trait_EU_lf,
                     trait_NOA_lf,
                     trait_NZ_lf,
+                    trait_SA_lf,
                     idcol = "continent")
-trait_CONT[, continent := factor(continent, labels = c("AUS", "EU", "NOA", "NZ"))]
+trait_CONT[, continent := factor(continent, labels = c("AUS", "EU", "NOA", "NZ", "SA"))]
 saveRDS(object = trait_CONT,
         file = file.path(data_cache, "trait_dat_grp_assig.rds"))
 
@@ -487,7 +546,10 @@ outliers <- rbindlist(list(
   "NZ" = trait_NZ[family %in% c("Stratiomyidae",
                                 "Tanyderidae",
                                 "Simuliidae",
-                                "Hydrometridae"), ]
+                                "Hydrometridae"), ],
+  "SA" = trait_SA[family %in% c("Libellulidae",
+                                "Coenagrionidae",
+                                "Gomphidae"),]
 ),
 idcol = "continent")
 saveRDS(outliers,
@@ -504,7 +566,7 @@ outliers_lf[, grouping_feature := sub("([a-z]{1,})(\\_)(.+)", "\\1", trait)]
 outliers_lf[, group := factor(group)]
 outliers_lf[order(continent), ] %>% 
   .[affinity >= 0.5, ] %>% 
-  .[continent == "AUS", ]
+  .[continent == "SA", ]
 
 p_list <- list()
 for(cont in c("AUS", "EU", "NOA", "NZ")) {

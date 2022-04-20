@@ -29,6 +29,7 @@ library(ggsci)
 library(dendextend) # for handling & plotting dendrograms
 library(patchwork)
 library(adegraphics)
+library(plotly)
 
 # Table outputs
 library(knitr)
