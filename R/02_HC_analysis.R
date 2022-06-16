@@ -8,15 +8,6 @@
 # "They produce a single partition that optimizes within-group homogeneity,
 # instead of a hierarchical series of partitions optimizing the hierarchical
 # attribution of objects to clusters"
-
-# TODO: Internal cluster validation
-# to test for the presence of a
-# hierarchical structure in the data
-# Use Approach from Nemec -> SIGTREE
-# Or any other measure? If we find an optimal number of groups
-# doesn't this confirm our assumption on the structure of the data
-# TODO: Comparison Hierarchical clustering with distance matrix
-# Cophenetic correlation?
 # ___________________________________________________________________________
 traits_ww <- readRDS(file.path(
   data_cache,
@@ -107,6 +98,13 @@ saveRDS(
 # sum-of-squares"(Legendre)
 # other, see also Everitt and
 # https://cran.r-project.org/web/packages/dendextend/vignettes/Cluster_Analysis.html#animals---attributes-of-animals
+
+# ?Internal cluster validation
+# to test for the presence of a
+# hierarchical structure in the data
+# Use Approach from Nemec -> SIGTREE
+# Or any other measure? If we find an optimal number of groups
+# doesn't this confirm our assumption on the structure of the data
 # ___________________________________________________________________________
 hclust_methods <-
   c(
@@ -150,8 +148,3 @@ cors_clustering_sol <- cor.dendlist(inv_traits_dendlist,
   k = hc_output$AUS$optimal_nog
 )
 corrplot::corrplot(cors_clustering_sol, "pie", "lower")
-
-
-
-
-

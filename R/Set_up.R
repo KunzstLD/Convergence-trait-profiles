@@ -30,6 +30,7 @@ library(dendextend) # for handling & plotting dendrograms
 library(patchwork)
 library(adegraphics)
 library(plotly)
+library(ggrepel)
 
 # Table outputs
 library(knitr)
@@ -46,13 +47,14 @@ library(caret)
 # Variable importance
 library(Boruta)
 
-# Cluster Analysis, treatment fuzzy coded variables and related
+# Cluster Analysis, treatment fuzzy coded variables, trait space and related
 library(cluster)
 library(FD)
 library(vegan)
 library(ade4)
 library(vegan)
 library(coRanking)
+library(ks)
 
 # Spatial operations
 library(sf)

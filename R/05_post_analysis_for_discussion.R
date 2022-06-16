@@ -5,93 +5,72 @@
 
 ## Trait space analysis ----
 
-### AUS trait syndromes that deviates from other trait spaces  ----
-# Identify families in the right upper corner of the Australia FS 
-# which are not overlapping with the other taxa
-# (could be probably solved easier)
-hull <- readRDS(file.path(data_cache, "hull_pcoa.rds"))
-setDT(hull)
-pcoa_scores <- readRDS(file.path(data_cache, "pcoa_scores.rds"))
-
-# below the lowest NZ coord & the lowest righthand NZ coord
-# lowest NZ coord
-coord1 <- hull[continent == "NZ",] %>%
-  .[order(A2, decreasing = FALSE),] %>%
-  .[1, .(A1, A2)]
-
-# lowest righthand NZ coord (which is also the coord with the highest score on axis1)
-coord2 <- hull[continent == "NZ",] %>%
-  .[order(A1, decreasing = TRUE),] %>%
-  .[1, .(A1, A2)]
-
-# calculate slope
-slope <- (coord2$A2 - coord1$A2)/(coord2$A1 - coord1$A1)
-# y2-y1 = m * (x2-x1)
-# if x1 = 0 then we can find the intercept 
-# -> y2-y1 = m*(x2-0)
-# -> y2 = m*(x2) + y1
-
-# calculate intercept
-# y = m * x + b
-intercept <- coord2$A2 - slope*coord2$A1
-
-# get values for Australia (below the rightmost NZ coord)
-aus_scores_syndrom <-
-  pcoa_scores[A2 < coord2$A2 & continent == "AUS", ]
-
-# check for each A1 value (i.e. X-Coordinate) of AUS subset if it's not enclosed by the NZ space
-# x = (y - b)/m
-# y = m * x + b
-aus_scores_syndrom[, y_low_NZ := slope*A1+intercept]
-aus_scores_syndrom <- aus_scores_syndrom[A2 <= y_low_NZ, ]
-
-# aus_scores_syndrom[, x_right_side_fsNZ := (A2 - intercept)/slope]
-# aus_scores_syndrom <- aus_scores_syndrom[A1 >= x_right_side_fsNZ, ]
-
-# AUS taxa "below" the other trait spaces in the PCoA plot
-# last two already captured! 
-aus_scores_syndrom <- rbind(aus_scores_syndrom,
-                            pcoa_scores[A1 < coord1$A1 & A2 < -0.4 & continent == "AUS", ][1,],
-                            fill = TRUE)
-aus_scores_syndrom[, family := sub("(.+)(\\_)(.+)", "\\3", id)]
-
-# Check traits for these 
+### AUS trait syndromes that deviates from other trait spaces  ---- 
 Trait_AUS_agg <- readRDS(file.path(data_in, "Trait_AUS_agg.rds"))
+AUS_outside_taxa_lf <- melt(Trait_AUS_agg[family %in% c(
+  "Veliidae",
+  "Pleidae",
+  "Hydrometridae",
+  "Notonectidae",
+  "Dytiscidae",
+  "Gerridae",
+  "Hygrobiidae",
+  "Eustheniidae",
+  "Synthemistidae",
+  "Libellulidae",
+  "Corduliidae"
+), ], id.vars = c("family", "order"), variable.name = "traits")
+AUS_outside_taxa_lf[, grouping_feature := sub("([a-z]{1,})(\\_)(.+)", "\\1", traits)]
 
-Trait_AUS_agg[family %in% aus_scores_syndrom$family, ] %>% 
-  melt(., id.vars = c("family", "order"), variable.name = "traits") %>% 
-  .[, grouping_feature := sub("([a-z]{1,})(\\_)(.+)", "\\1", traits)] %>% 
-  ggplot(., aes(x = factor(traits),
-                y = value)) +
+ggplot(AUS_outside_taxa_lf, aes(
+  x = factor(traits),
+  y = value
+)) +
   geom_jitter(width = 0.05) +
   geom_violin(alpha = 0.2) +
+  coord_flip() +
   facet_wrap(grouping_feature ~ .,
-             scales = "free"
+    scales = "free"
   ) + # labeller = as_labeller(facet_names)
-  labs(x = "Traits",
-       y = "Affinity") +
+  labs(
+    x = "Traits",
+    y = "Affinity"
+  ) +
   ggtitle(paste("Trait affinity distribution")) +
   theme_bw() +
   theme(
     axis.title = element_text(size = 16),
-    axis.text.x = element_text(family = "Roboto Mono",
-                               size = 14),
-    axis.text.y = element_text(family = "Roboto Mono",
-                               size = 14),
-    legend.title = element_text(family = "Roboto Mono",
-                                size = 16),
-    legend.text = element_text(family = "Roboto Mono",
-                               size = 14),
-    strip.text = element_text(family = "Roboto Mono",
-                              size = 14),
-    plot.title = element_text(family = "Roboto Mono",
-                              size = 16),
+    axis.text.x = element_text(
+      family = "Roboto Mono",
+      size = 14
+    ),
+    axis.text.y = element_text(
+      family = "Roboto Mono",
+      size = 14
+    ),
+    legend.title = element_text(
+      family = "Roboto Mono",
+      size = 16
+    ),
+    legend.text = element_text(
+      family = "Roboto Mono",
+      size = 14
+    ),
+    strip.text = element_text(
+      family = "Roboto Mono",
+      size = 14
+    ),
+    plot.title = element_text(
+      family = "Roboto Mono",
+      size = 16
+    ),
   )
 
 # To which TPG do these taxa belong? 
 # AUS TPG 5 & 6
 trait_CONT <- readRDS(file.path(data_cache, "trait_dat_grp_assig.rds"))
 unique(trait_CONT[continent == "AUS" & family %in% aus_scores_syndrom$family, group])
+
 
 ### Taxa in high density area ----
 # Characterize trait spaces in these areas
@@ -108,15 +87,36 @@ unique(pcoa_scores[contour_50, .N/total_N, by = continent])
 trait_CONT <- readRDS(file.path(data_cache, "trait_dat_grp_assig.rds"))
 trait_CONT[, id := paste0(continent, "_", family)]
 
-# Search and summarize trait profiles for the taxa in the 50 % probablity occurrence area
+# Search and summarize trait profiles for the taxa in the 50 % probability occurrence area
 trait_CONT_50 <- trait_CONT[id %in% pcoa_scores[contour_50, id],]
 
-# TODO: How to quickly summarize?
 # Which groups are present per continent? 
-# Then check defining traits for each group 
-unique(trait_CONT_50[, group, by = continent]) %>% 
+group_50 <- unique(trait_CONT_50[, group, by = continent]) %>% 
   .[order(continent, group), ]
 
+unique(trait_CONT_50[, .(group, family), by = continent]) %>%
+  .[, paste(family, collapse = ", "), by = .(continent, group)] %>%
+  .[order(continent, group), ] %>% 
+  fwrite(.,
+         file = file.path(data_out, "TPGs_in_50_contour.csv"),
+         sep = ";")
+
+# Then check defining traits for each group 
+trait_CONT_50[, nr_families := uniqueN(family), by = .(continent, group)]
+trait_CONT_50[affinity > 0.5,
+              prop_taxa_high_aff := .N / nr_families,
+              by = .(continent, group, trait)]
+
+# Traits by which these families are mostly defined 
+trait_CONT_50[prop_taxa_high_aff >= 0.5, .N, by = trait] %>% 
+  .[order(-N), ] 
+trait_CONT_50[trait %in% c("ovip_aqu",
+                           "volt_uni",
+                           "bf_cylindrical",
+                           "locom_crawl",
+                           "resp_gil",
+                           "size_small"), .N, by = .(continent, group)] %>% 
+  .[order(continent, group)]
 
 # ___________________________________________________________________________
 ## Global pattern in TPGs ----
@@ -127,7 +127,6 @@ trait_CONT <- readRDS(file.path(data_cache, "trait_dat_grp_assig.rds"))
 # life-history, mobility, morphology
 # voltinism, locomotion, body form
 trait_CONT[grouping_feature %in% c("bf", "size", "volt", "locom"), ]
-
 
 disting_traits <-
   readRDS(file = file.path(data_cache, "def_traits.rds"))
@@ -209,13 +208,16 @@ ggplot(trait_data_bind) +
 # ___________________________________________________________________________
 # go back to the non-aggregate trait datasets to investigate certain patterns further
 
-### Ovoviviparity ----
 trait_non_agg <- load_data(pattern = ".*\\.rds",
                            path = file.path(data_in, "Not_aggregated"))
 trait_non_agg <- rbindlist(trait_non_agg, idcol = "dataset", fill = TRUE)
 
-# 223 taxa that exhibit ovoviviparity to a certain degree
-sum(trait_non_agg[ovip_ovo > 0, .N, by = dataset]$N)
+# Remove orders Neuroptera and Megaloptera
+trait_non_agg <- trait_non_agg[!order %in% c("Neuroptera", "Megaloptera"), ]
+
+# Load the aggregated datasets as well
+trait_data_bind <- readRDS(file.path(data_cache,
+                                     "trait_data_ww_bind.rds"))
 
 # filter for aquatic insects
 aq_insects <- c(
@@ -229,6 +231,10 @@ aq_insects <- c(
   "Megaloptera",
   "Neuroptera"
 )
+
+### Ovoviviparity ----
+# 223 taxa that exhibit ovoviviparity to a certain degree
+sum(trait_non_agg[ovip_ovo > 0, .N, by = dataset]$N)
 
 # Only 36 aquatic insects
 trait_non_agg[ovip_ovo > 0 & order %in% aq_insects, .N, by = dataset]
@@ -257,7 +263,7 @@ trait_non_agg[ovip_ter >= 0.5 &
                 order %in% c("Diptera", "Coleoptera"),
               uniqueN(family), by = "dataset"]
 
-# overall number of dipterans and coleoptera families in each dataset
+# Overall number of dipterans and coleoptera families in each dataset
 trait_non_agg[order %in% aq_insects, uniqueN(family),
               by = c("dataset", "order")] %>%
   .[order(dataset, order), ] %>%
@@ -267,8 +273,6 @@ trait_non_agg[order %in% aq_insects, uniqueN(family),
          sep = ";")
 
 ## Comparison to aggregated datasets ----
-trait_data_bind <- readRDS(file.path(data_cache,
-                                     "trait_data_ww_bind.rds"))
 
 ### Nr. of families ----
 
@@ -306,16 +310,18 @@ setcolorder(
   )
 )
 nfamilies_agg[, occur_ratio := round(occur_ratio, digits = 2)]
-fwrite(nfamilies_agg[order(Continent, Order), ],
-       file.path(data_paper, "Tables"," n_families_agg_non_agg.csv"),
-       sep = ";")
+fwrite(
+  nfamilies_agg[order(Continent, Order),],
+  file.path(data_paper, "Tables", " n_families_agg_non_agg_June_9.csv"),
+  sep = ";"
+)
 
 nfamilies_agg[, .(
   sum_non_agg = sum(nr_families_non_agg),
   sum_agg = sum(nr_families_agg)
 ),
 by = Continent] %>% 
-  .[, sum_agg/sum_non_agg]
+  .[, .(Continent, sum_agg, sum_non_agg, sum_agg/sum_non_agg)]
 
 # ___________________________________________________________________________
 ## Clustering with complete NZ dataset ----
@@ -498,7 +504,3 @@ def_traits_NZ %>% arrange(factor(
   .[, paste(trait, collapse = ", "),
     by = group] %>% 
   .[order(group), ]
-
-
-
-

@@ -7,9 +7,6 @@
 # Load trait data
 trait_data_ww <- load_data(pattern = ".*agg\\.rds", path = data_in)
 
-# Check if trait datasets have the same colnames
-trait_data_ww %>% check_colNames()
-
 # Rm dev for now
 # Looking at the trait distributions revealed that in all databases no parasites were present
 trait_data_ww <- lapply(
@@ -23,6 +20,10 @@ trait_data_ww <- lapply(
   }
 )
 
+# Check if trait datasets have the same colnames
+trait_data_ww %>% check_colNames()
+# lapply(trait_data_ww, dim)
+
 # rename file list
 names(trait_data_ww) <- sub(
   "([A-z]{5})(\\_)([A-z]{2,})(\\_)([A-z]{3})(.+)",
@@ -30,6 +31,9 @@ names(trait_data_ww) <- sub(
   names(trait_data_ww)
 )
 names(trait_data_ww)[5] <- "SA"
+
+# Do not consider Megaloptera and Neuroptera
+trait_data_ww <- lapply(trait_data_ww, function(y) y[!order %in% c("Neuroptera", "Megaloptera"), ])
 
 # Arrange colnames according to traits
 lapply(
@@ -52,9 +56,9 @@ lapply(
       "locom_crawl",
       "locom_burrow",
       "locom_sessil",
-      "ovip_ter",
-      "ovip_ovo",
-      "ovip_aqu",
+      # "ovip_ter",
+      # "ovip_ovo",
+      # "ovip_aqu",
       "size_medium",
       "size_small",
       "size_large",

@@ -7,41 +7,10 @@ hc_output_ww <- readRDS(file.path(data_cache,
                                   "hc_output_ww.rds"))
 
 # Load trait data (with order information)
-trait_data_ww <- load_data(pattern = "agg*.rds", path = data_in)
-
-# Rm dev stage 
-trait_data_ww <- lapply(trait_data_ww, function(y) y[, c("dev_hemimetabol", 
-                                                         "dev_holometabol", 
-                                                         "feed_parasite") := NULL])
-
-# Desired order of traits (for plotting purposes later on)
-des_traits_order <- c(
-  "bf_cylindrical",
-  "bf_flattened",
-  "bf_spherical",
-  "bf_streamlined",
-  "feed_filter",
-  "feed_gatherer",
-  "feed_herbivore",
-  "feed_predator",
-  "feed_shredder",
-  "locom_burrow",
-  "locom_crawl",
-  "locom_sessil",
-  "locom_swim",
-  "ovip_aqu",
-  "ovip_ter",
-  "ovip_ovo",
-  "resp_gil",
-  "resp_pls_spi",
-  "resp_teg",
-  "size_small",
-  "size_medium",
-  "size_large",
-  "volt_semi",
-  "volt_uni",
-  "volt_bi_multi"
-)
+trait_data_bind <- readRDS(file = file.path(
+  data_cache,
+  "trait_data_ww_bind.rds"
+))
 
 # ___________________________________________________________________________
 # Extract global distances ----
@@ -189,12 +158,10 @@ for(i in names(hc_output_ww)) {
 #*****************************************************#
 
 # Trait data
-trait_AUS <- trait_data_ww$Trait_AUS_agg.rds
+trait_AUS <- trait_data_bind[continent == "AUS", ]
 trait_AUS[trait_profile_groups$AUS, group := i.group,
      on = "family"]
-
-# Change col order
-setcolorder(trait_AUS, des_traits_order)
+trait_AUS[, continent := NULL]
 
 # Save for RF analyses
 saveRDS(object = trait_AUS,
@@ -223,13 +190,14 @@ grouping_feature_names <- c(
   "size" = "Body size",
   "volt" = "Voltinism",
   "bf" = "Body form",
-  "ovip" = "Oviposition",
   "1" = "TPG 1",
   "2" = "TPG 2",
   "3" = "TPG 3",
   "4" = "TPG 4",
   "5" = "TPG 5",
-  "6" = "TPG 6"
+  "6" = "TPG 6",
+  "7" = "TPG 7",
+  "8" = "TPG 8"
 )
 
 # Plot TPGs and expressed traits
@@ -239,7 +207,7 @@ ggplot2::ggsave(
   filename = file.path(data_paper,
                        "Graphs", 
                        "Heatmap_tpgs_AUS.png"),
-  width = 50,
+  width = 65,
   height = 40,
   units = "cm"
 )
@@ -249,18 +217,16 @@ ggplot2::ggsave(
 #*****************************************************#
 
 # Trait data
-trait_EU <- trait_data_ww$Trait_EU_agg.rds
+trait_EU <- trait_data_bind[continent == "EU", ]
 trait_EU[trait_profile_groups$EU, group := i.group,
           on = "family"]
-
-# Re-order cols 
-setcolorder(trait_EU, des_traits_order)
+trait_EU[, continent := NULL]
 
 # Save for RF analyses
 saveRDS(object = trait_EU,
         file = file.path(data_cache, "trait_EU_with_groups.rds"))
 
-# Order according to dendrogram
+# Order families according to dendrogram
 trait_EU[, family := factor(family, levels = labels(dendrograms$EU))]
 
 trait_EU_lf <- melt(
@@ -284,7 +250,6 @@ grouping_feature_names <- c(
   "size" = "Body size",
   "volt" = "Voltinism",
   "bf" = "Body form",
-  "ovip" = "Oviposition",
   "1" = "TPG 1",
   "2" = "TPG 2",
   "3" = "TPG 3",
@@ -303,7 +268,7 @@ ggplot2::ggsave(
   filename = file.path(data_paper,
                        "Graphs", 
                        "Heatmap_tpgs_EU.png"),
-  width = 50,
+  width = 55,
   height = 40,
   units = "cm"
 )
@@ -313,12 +278,10 @@ ggplot2::ggsave(
 #*****************************************************#
 
 # Trait data
-trait_NOA <- trait_data_ww$Trait_NOA_agg.rds
+trait_NOA <- trait_data_bind[continent == "NOA", ]
 trait_NOA[trait_profile_groups$NOA, group := i.group,
          on = "family"]
-
-# Re-order columns
-setcolorder(trait_NOA, des_traits_order)
+trait_NOA[, continent := NULL]
 
 # Save for RF analyses
 saveRDS(object = trait_NOA,
@@ -348,7 +311,6 @@ grouping_feature_names <- c(
   "size" = "Body size",
   "volt" = "Voltinism",
   "bf" = "Body form",
-  "ovip" = "Oviposition",
   "1" = "TPG 1",
   "2" = "TPG 2",
   "3" = "TPG 3",
@@ -356,7 +318,10 @@ grouping_feature_names <- c(
   "5" = "TPG 5",
   "6" = "TPG 6",
   "7" = "TPG 7",
-  "8" = "TPG 8"
+  "8" = "TPG 8",
+  "9" = "TPG 9",
+  "10" = "TPG 10",
+  "11" = "TPG 11"
 )
 
 # plot
@@ -366,24 +331,20 @@ ggplot2::ggsave(
   filename = file.path(data_paper,
                        "Graphs",
                        "Heatmap_tpgs_NOA.png"),
-  width = 50,
+  width = 60,
   height = 40,
   units = "cm"
 )
 
 #*****************************************************#
 ## NZ ----
-# May merge cluster 6 to 7? Cluster 6 consists of only two families;
-# similar defining traits
 #*****************************************************#
 
 # Trait data
-trait_NZ <- trait_data_ww$Trait_NZ_agg.rds
+trait_NZ <- trait_data_bind[continent == "NZ", ]
 trait_NZ[trait_profile_groups$NZ, group := i.group,
           on = "family"]
-
-# Re-order columns
-setcolorder(trait_NZ, des_traits_order)
+trait_NZ[, continent := NULL]
 
 # Save for RF analyses
 saveRDS(object = trait_NZ,
@@ -391,7 +352,6 @@ saveRDS(object = trait_NZ,
 
 # Order according to dendrogram
 trait_NZ[, family := factor(family, levels = labels(dendrograms$NZ))]
-
 trait_NZ_lf <- melt(
   trait_NZ,
   id.vars = c("family", "order", "group"),
@@ -413,17 +373,13 @@ grouping_feature_names <- c(
   "size" = "Body size",
   "volt" = "Voltinism",
   "bf" = "Body form",
-  "ovip" = "Oviposition",
   "1" = "TPG 1",
   "2" = "TPG 2",
   "3" = "TPG 3",
   "4" = "TPG 4",
   "5" = "TPG 5",
   "6" = "TPG 6",
-  "7" = "TPG 7",
-  "8" = "TPG 8",
-  "9" = "TPG 9",
-  "10" = "TPG 10"
+  "7" = "TPG 7"
 )
 
 # plot
@@ -433,8 +389,8 @@ ggplot2::ggsave(
   filename = file.path(data_paper,
                        "Graphs", 
                        "Heatmap_tpgs_NZ.png"),
-  width = 60,
-  height = 35,
+  width = 55,
+  height = 40,
   units = "cm"
 )
 
@@ -442,12 +398,10 @@ ggplot2::ggsave(
 #*****************************************************#
 ## SA ----
 #*****************************************************#
-trait_SA <- trait_data_ww$Trait_SA_assigned_agg.rds
+trait_SA <- trait_data_bind[continent == "SA", ]
 trait_SA[trait_profile_groups$SA, group := i.group,
          on = "family"]
-
-# Change col order
-setcolorder(trait_SA, des_traits_order)
+trait_SA[, continent := NULL]
 
 # Save for RF analyses
 saveRDS(object = trait_SA,
@@ -467,6 +421,7 @@ trait_SA_lf[, group := factor(group)]
 # Create trait label for plotting
 trait_SA_lf[, trait_label := as.character(sub("([a-z]{1,})(\\_)(.+)", "\\3", trait))]
 trait_SA_lf[, trait_label := factor(trait_label, levels = unique(trait_label))]
+trait_SA_lf$group %>% unique
 
 # names for grouping features 
 grouping_feature_names <- c(
@@ -476,13 +431,16 @@ grouping_feature_names <- c(
   "size" = "Body size",
   "volt" = "Voltinism",
   "bf" = "Body form",
-  "ovip" = "Oviposition",
   "1" = "TPG 1",
   "2" = "TPG 2",
   "3" = "TPG 3",
   "4" = "TPG 4",
   "5" = "TPG 5",
-  "6" = "TPG 6"
+  "6" = "TPG 6",
+  "7" = "TPG 7",
+  "8" = "TPG 8",
+  "9" = "TPG 9",
+  "10" = "TPG 10"
 )
 
 # Plot TPGs and expressed traits
@@ -492,7 +450,7 @@ ggplot2::ggsave(
   filename = file.path(data_paper,
                        "Graphs", 
                        "Heatmap_tpgs_SA.png"),
-  width = 50,
+  width = 55,
   height = 40,
   units = "cm"
 )
@@ -591,7 +549,3 @@ for(cont in c("AUS", "EU", "NOA", "NZ")) {
 # Hydrometridae: spherical & cylindrical, predator, crawling, ovip_aqu & ovip_ter, resp_pls_spi, size_medium & size_small, volt_bi_multi
 # Simuliidae: cylindrical, herbivore & filterer, sessil, aquatic oviposition, resp_teg & resp_gil, size_small, volt_bi_multi
 # Tanyderidae
-
-
-
-

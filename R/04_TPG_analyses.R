@@ -15,6 +15,13 @@ trait_CONT <- readRDS(file.path(data_cache, "trait_dat_grp_assig.rds"))
 # Unique families per continent and group
 trait_CONT[, nr_families := uniqueN(family), by = .(continent, group)]
 
+# Delineated TPGs per continent
+unique(trait_CONT[order(group), .(group), by = continent])
+trait_CONT[, uniqueN(family), by = continent]
+
+# Scaled to 100
+trait_CONT[, uniqueN(family), by = continent][, .(continent, 100 / V1 * c(8, 9, 11, 7, 10))]
+
 ## Do TPGs represent a taxonomic signal? ----
 trait_CONT_wf <-
   dcast(trait_CONT[, .(continent, family, order, group, trait, affinity)],
@@ -25,14 +32,15 @@ trait_CONT_wf[, n_families_gr := .N, by = .(continent, group)]
 trait_CONT_wf[, n_families_gr_order := .N, by = .(continent, group, order)]
 trait_CONT_wf[, prop_order := n_families_gr_order / n_families_gr]
 
-### Cluster sizes ----
+### Cluster sizes (nr. of families per TPG) ----
 cluster_size <- unique(trait_CONT_wf[, .(continent, group, n_families_gr)])
+cluster_size[order(continent, -n_families_gr), ]
 
 ### In how many clusters does a certain order occur? ----
 cluster_occ <- unique(trait_CONT_wf[, .(group), by = .(continent, order)]) %>%
   dcast(., ... ~ group, fun.aggregate = fun_binary_length) %>%
   .[, occ_in_cluster := apply(.SD, 1, sum),
-    .SDcols = c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10")
+    .SDcols = c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11")
   ] %>%
   .[, .(continent, order, occ_in_cluster)] 
 # cluster_occ[order %in% c("Ephemeroptera", "Trichoptera", "Diptera", "Plecoptera"), ]
@@ -49,6 +57,7 @@ tpg_names <- c(
   "8" = "TPG 8",
   "9" = "TPG 9",
   "10" = "TPG 10",
+  "11" = "TPG 11",
   "AUS" = "AUS",
   "EU" = "EUR",
   "NOA" = "NA",
@@ -110,7 +119,8 @@ ggplot2::ggsave(
 
 ## Defining traits ----
 # Criterion:
-# Calculate proportion of taxa per continent, TPG and trait. Traits that are expressed with
+# Calculate proportion of taxa per continent, TPG and trait.
+# Traits that are expressed with
 # an affinity of more than 0.5 per TPG should presumably distinguish the TPG's
 trait_CONT[affinity > 0.5,
            prop_taxa_high_aff := .N / nr_families,
@@ -130,19 +140,89 @@ disting_traits <-
     ), by = c("continent", "group", "trait")])
 disting_traits <-
   disting_traits[order(continent, group, -prop_taxa_high_aff), ]
+# View(disting_traits)
 
 # Calculate nr of traits per tpg for upcoming comparisons
+# Overall, TPGs have between 2 and 7 defining traits
 disting_traits[, nr_traits_group := .N, 
                by = .(continent, group)]
-# 3 to 9 TPGs overall 
-disting_traits[, summary(nr_traits_group), by = c("continent")]
+unique(disting_traits[, nr_traits_group, by = c("continent", "group")])
+disting_traits[, .(
+  min_def_traits = min(nr_traits_group),
+  max_def_traits = max(nr_traits_group)
+), by = continent]
+
 # saveRDS(disting_traits,
 #          file = file.path(data_cache, "def_traits.rds"))
 
 ### Overview ----
 # for our initial criterion
-disting_traits[, def_traits := paste(trait, collapse = ", "), 
-               by = c("continent", "group")]
+disting_traits[, def_traits := paste(trait, collapse = ", "),
+  by = c("continent", "group")
+]
+
+# Check for similar TPGs
+lookup_traits <- data.table(
+  trait = unique(disting_traits$trait),
+  trait_label = c(
+    "swimming",
+    "small",
+    "plastron and spiracle",
+    "predator",
+    "cylindrical",
+    "large",
+    "univoltinism",
+    "crawling",
+    "gills",
+    "flattened",
+    "herbivore",
+    "medium",
+    "tegument",
+    "shredder",
+    "gatherer",
+    "burrower",
+    "streamlined",
+    "bi/multivoltinism",
+    "filterer",
+    "sessil"
+  ))
+disting_traits[lookup_traits, 
+           trait_label := i.trait_label, 
+           on = "trait"]
+disting_traits <- disting_traits %>%
+  arrange(factor(
+    grouping_feature,
+    levels = c(
+      "locom",
+      "bf",
+      "ovip",
+      "size",
+      "feed",
+      "resp",
+      "volt"
+    )
+  )) %>%
+  .[, paste(trait_label, collapse = ", "),
+    by = c("continent", "group")
+  ]
+setnames(disting_traits,
+         "V1",
+         "defining_tc")
+
+# Exact duplicates 
+disting_traits[duplicated(defining_tc) | duplicated(defining_tc, fromLast = TRUE), ]
+
+# Fuzzy matching
+library(tidystringdist)
+# library(tidyverse)
+
+tab_fmatch_tc <- disting_traits[, tidy_comb_all(defining_tc)] %>%
+  tidy_stringdist() 
+setDT(tab_fmatch_tc)
+# Go through fuzzy matching table manually and select
+# potential similar tc's
+tab_fmatch_tc[order(lv), head(V2, n = 5), by = V1] %>% View()
+
 
 # 17 out of 39 TPGs are characterised by cylindrical, aquatic ovipositon & crawling
 unique(disting_traits[, .(continent, group, def_traits)]) %>% 
