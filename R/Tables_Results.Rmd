@@ -16,6 +16,8 @@ library(data.table)
 library(dplyr)
 library(reactable)
 library(htmltools)
+library(ggplot2)
+library(ggsci)
 ```
 
 # Spread in functional space
@@ -52,90 +54,18 @@ def_traits <-
     "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/def_traits.rds"
   )
 
-# create lookup_table for traits
-lookup_traits <- data.table(
-  trait = unique(def_traits$trait),
-  trait_label = c(
-    "swimming",
-    "small",
-    "plastron and spiracle",
-    "predator",
-    "cylindrical",
-    "large",
-    "univoltinism",
-    "crawling",
-    "gills",
-    "flattened",
-    "herbivore",
-    "medium",
-    "tegument",
-    "shredder",
-    "gatherer",
-    "burrower",
-    "streamlined",
-    "bi/multivoltinism",
-    "filterer",
-    "sessil"
-  )
-)
-def_traits[lookup_traits, 
-           trait_label := i.trait_label, 
-           on = "trait"]
-
-# Arrange traits 
-# Alternative arrangement according to their order how often traits occur across continents
-# def_traits %>% arrange(factor(
-#   trait,
-#   levels = c(
-#     "locom_crawl",
-#     "bf_cylindrical",
-#     "ovip_aqu",
-#     "size_small",
-#     "size_medium",
-#     "resp_gil",
-#     "feed_herbivore",
-#     "volt_uni",
-#     "resp_teg",
-#     "feed_predator",
-#     "bf_flattened",
-#     "resp_pls_spi",
-#     "locom_swim",
-#     "feed_filter",
-#     "bf_spherical",
-#     "bf_streamlined",
-#     "volt_bi_multi",
-#     "locom_sessil",
-#     "ovip_ter"
-#   )
-# )) %>%
-#   .[, paste(trait, collapse = ", "),
-def_traits <- def_traits %>% arrange(factor(
-  grouping_feature,
-  levels = c(
-    "locom",
-    "bf",
-    "ovip",
-    "size",
-    "feed",
-    "resp",
-    "volt"
-))) %>%
-  .[, paste(trait_label, collapse = ", "),
-    by = c("continent", "group")]
-setnames(def_traits,
-         "V1",
-         "defining_tc")
-
 reactable(
-  def_traits[order(continent, group), 
-             .(continent, group, defining_tc)],
+  def_traits[
+    order(continent, group),
+    .(continent, group, defining_tc)
+  ],
   columns = list(
     continent = colDef(name = "Continent", width = 100),
     group = colDef(name = "TPG", width = 60),
     defining_tc = colDef(
       name = "Defining trait combinations",
       style = function(value) {
-        if (grepl("(?=.*cylindrical)(?=.*aqu)(?=.*crawl)", value, perl = TRUE)) {
+        if (value %like% "crawling" & value %like% "cylindrical" & value %like% "univoltinism") {
           list(background = "steelblue")
         }
         # else if (grepl("(?=.*small)(?=.*predator)(?=.*spi.*)", value, perl = TRUE)) {
@@ -146,9 +76,11 @@ reactable(
   ),
   filterable = TRUE,
   highlight = TRUE,
-  defaultPageSize = 33
+  defaultPageSize = 23
 )
-# fwrite(def_traits[order(continent, group), ], file = "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Output/def_traits.csv", sep = ";")
+fwrite(def_traits[order(continent, group), .(continent, group, defining_tc)],
+  file = "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Paper/Tables/def_traits.csv", sep = ";"
+)
 ```
 
 ## Table 7
@@ -162,7 +94,7 @@ def_traits_full <-
   )
 
 # 50 % of taxa with an affinity > 0.5
-def_traits_full <- def_traits_full[prop_taxa_high_aff >= 0.5 ]
+def_traits_full <- def_traits_full[prop_taxa_high_aff >= 0.5, ]
 
 # wide format version (might use this in the future)
 # dcast(
@@ -208,15 +140,17 @@ reactable(
 Clustering the complete New Zealand trait dataset
 
 ```{r, echo = FALSE}
-def_traits_NZ <-
+def_traits_NZ <- readRDS(
+ "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/NZ_complete_clustering.rds"
+ )
+lookup_traits <-
   readRDS(
-    "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/NZ_complete_clustering.rds"
+    "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/lookup_traits.rds"
   )
-
-# Use lookup table from Table 6
-def_traits_NZ[lookup_traits, 
-           trait_label := i.trait_label, 
+def_traits_NZ[lookup_traits,
+           trait_label := i.trait_label,
            on = "trait"]
+
 def_traits_NZ <- def_traits_NZ %>% arrange(factor(
   grouping_feature,
   levels = c(
@@ -229,13 +163,13 @@ def_traits_NZ <- def_traits_NZ %>% arrange(factor(
     "volt"
   ))) %>%
   .[, paste(trait_label, collapse = ", "),
-    by = group] %>% 
+    by = group] %>%
   .[order(group), ]
 setnames(def_traits_NZ,
          "V1",
          "defining_tc")
 reactable(
-  def_traits_NZ[order(group), 
+  def_traits_NZ[order(group),
              .(group, defining_tc)],
   columns = list(
     group = colDef(name = "TPG", width = 60),
@@ -245,11 +179,12 @@ reactable(
   ),
   filterable = TRUE,
   highlight = TRUE,
-  defaultPageSize = 14
+  defaultPageSize = 18
 )
 
-fwrite(def_traits_NZ[order(group),],
-       file = "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Output/def_traits_NZ.csv", sep = ";")
+fwrite(def_traits_NZ[order(group),], file =
+ "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Paper/Tables/def_traits_NZ.csv",
+sep = ";")
 ```
 
 ## Table 9
@@ -273,7 +208,7 @@ reactable(
   defaultPageSize = 11
 )
 
-# long format
+# # long format
 outliers_lf <-
   melt(
     outliers,
@@ -284,27 +219,27 @@ outliers_lf <-
 outliers_lf[lookup_traits,
             trait_label := i.trait_label,
             on = "trait"]
-outliers_lf[, grouping_feature := sub("([a-z]{1,})(\\_)(.+)", "\\1", trait)]
-outliers_lf <- outliers_lf[affinity > 0.5, ]
-outliers_lf[trait == "volt_semi", trait_label := "semivoltinism"]
-outliers_lf[trait == "locom_burrow", trait_label := "burrowing"]
-outliers_lf <- outliers_lf %>% arrange(factor(
-  grouping_feature,
-  levels = c(
-    "locom",
-    "bf",
-    "ovip",
-    "size",
-    "feed",
-    "resp",
-    "volt"
-  ))) %>%
-  .[, paste(trait_label, collapse = ", "),
-    by = c("continent", "group", "family")] %>% 
-  .[order(continent, group), ]
-setnames(outliers_lf,
-         "V1",
-         "defining_tc")
+# outliers_lf[, grouping_feature := sub("([a-z]{1,})(\\_)(.+)", "\\1", trait)]
+# outliers_lf <- outliers_lf[affinity > 0.5, ]
+# outliers_lf[trait == "volt_semi", trait_label := "semivoltinism"]
+# outliers_lf[trait == "locom_burrow", trait_label := "burrowing"]
+# outliers_lf <- outliers_lf %>% arrange(factor(
+#   grouping_feature,
+#   levels = c(
+#     "locom",
+#     "bf",
+#     "ovip",
+#     "size",
+#     "feed",
+#     "resp",
+#     "volt"
+#   ))) %>%
+#   .[, paste(trait_label, collapse = ", "),
+#     by = c("continent", "group", "family")] %>%
+#   .[order(continent, group), ]
+# setnames(outliers_lf,
+#          "V1",
+#          "defining_tc")
 
 #fwrite(outliers_lf,
 #       file = "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Output/outliers.csv", sep = ";")
@@ -317,9 +252,7 @@ setnames(outliers_lf,
 Most important traits according to the permutation importance from the random forest models and according to the selection by the Boruta algorithm. Order reflects the ranking obtained from both selection methods.
 
 ```{r, echo = FALSE}
-# TODO whole boruta for SI
-
-# rf permutation importance
+# RF permutation importance
 most_imp_vars <- readRDS("/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/most_imp_vars.rds")
 
 continents <- sub("([A-Z]{2,})(\\.)(.+)", "\\1", rownames(most_imp_vars))
@@ -327,6 +260,21 @@ most_imp_vars$continents <- continents
 most_imp_vars$traits <- rownames(most_imp_vars)
 setDT(most_imp_vars)
 most_imp_vars[, traits := sub("([A-Z]{2,})(\\.)(.+)", "\\3", traits)]
+
+lookup_traits <- readRDS("/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/lookup_traits.rds")
+lookup_traits <- rbind(
+  lookup_traits,
+  data.table(
+    trait = "bf_spherical",
+    trait_label = "spherical"
+  )
+)
+most_imp_vars[lookup_traits, trait_label := i.trait_label,
+  on = c(traits = "trait")
+]
+most_imp_vars %>%
+  .[order(continents, -y), .(continents, trait_label, perm_importance = round(y, digits = 2))] %>%
+  fwrite(., "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Paper/Tables/most_imp_traits.csv", sep = ";")
 
 # 5 most important traits
 miv_pub <-
@@ -338,6 +286,36 @@ miv_pub <-
 liv_pub <- most_imp_vars[order(continents, -y), .(pi_score = tail(y, n = 5),
                                          traits_perm_imp = tail(traits, n = 5)),
                 by = continents] 
+
+ggplot(liv_pub,
+       aes(x = as.factor(traits_perm_imp),
+           y = pi_score)) +
+  geom_pointrange(aes(
+    ymin = 0,
+    ymax = pi_score,
+    color = as.factor(continents)
+  )) +
+  facet_grid(.~as.factor(continents)) +
+  coord_flip() +
+  labs(x = "",
+       y = "Permutation importance") +
+  scale_color_d3() +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 16),
+    axis.text.y = element_text(family = "Roboto Mono",
+                               size = 12),
+    legend.title = element_text(family = "Roboto Mono",
+                                size = 16),
+    legend.text = element_text(family = "Roboto Mono",
+                               size = 14),
+    strip.text = element_text(family = "Roboto Mono",
+                              size = 14),
+    # panel.grid = element_blank(),
+    legend.position = "none"
+  )
+
+
 
 # boruta
 boruta_res <-
@@ -371,7 +349,6 @@ reactable(
   highlight = TRUE, 
   defaultPageSize = 20
 )
-
 ```
 
 ## Table 11

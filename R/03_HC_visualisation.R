@@ -11,7 +11,6 @@ trait_data_bind <- readRDS(file = file.path(
   data_cache,
   "trait_data_ww_bind.rds"
 ))
-
 # ___________________________________________________________________________
 # Extract global distances ----
 # ___________________________________________________________________________
@@ -23,14 +22,12 @@ lookup_gf <- data.table(
            "F3",
            "F4",
            "F5",
-           "F6",
-           "F7"),
+           "F6"),
   gf = c(
     "feeding mode",
     "respiration",
     "voltinism",
     "locomotion",
-    "oviposition",
     "size",
     "body form"
   )
@@ -153,9 +150,9 @@ for(i in names(hc_output_ww)) {
     )
 }
 
-#*****************************************************#
+# _______________________________________________________
 ## AUS ----
-#*****************************************************#
+# _______________________________________________________
 
 # Trait data
 trait_AUS <- trait_data_bind[continent == "AUS", ]
@@ -197,7 +194,8 @@ grouping_feature_names <- c(
   "5" = "TPG 5",
   "6" = "TPG 6",
   "7" = "TPG 7",
-  "8" = "TPG 8"
+  "8" = "TPG 8",
+  "9" = "TPG 9"
 )
 
 # Plot TPGs and expressed traits
@@ -212,9 +210,9 @@ ggplot2::ggsave(
   units = "cm"
 )
 
-#*****************************************************#
+# _______________________________________________________
 ## EU ----
-#*****************************************************#
+# _______________________________________________________
 
 # Trait data
 trait_EU <- trait_data_bind[continent == "EU", ]
@@ -258,7 +256,8 @@ grouping_feature_names <- c(
   "6" = "TPG 6",
   "7" = "TPG 7",
   "8" = "TPG 8",
-  "9" = "TPG 9"
+  "9" = "TPG 9",
+  "10" = "TPG 10"
 )
 
 # plot
@@ -273,9 +272,9 @@ ggplot2::ggsave(
   units = "cm"
 )
 
-#*****************************************************#
+# _______________________________________________________
 ## NOA ----
-#*****************************************************#
+# _______________________________________________________
 
 # Trait data
 trait_NOA <- trait_data_bind[continent == "NOA", ]
@@ -336,9 +335,9 @@ ggplot2::ggsave(
   units = "cm"
 )
 
-#*****************************************************#
+# _______________________________________________________
 ## NZ ----
-#*****************************************************#
+# _______________________________________________________
 
 # Trait data
 trait_NZ <- trait_data_bind[continent == "NZ", ]
@@ -379,7 +378,15 @@ grouping_feature_names <- c(
   "4" = "TPG 4",
   "5" = "TPG 5",
   "6" = "TPG 6",
-  "7" = "TPG 7"
+  "7" = "TPG 7",
+  "8" = "TPG 8",
+  "9" = "TPG 9",
+  "10" = "TPG 10",
+  "11" = "TPG 11",
+  "12" = "TPG 12",
+  "13" = "TPG 13",
+  "14" = "TPG 14",
+  "15" = "TPG 15"
 )
 
 # plot
@@ -395,9 +402,9 @@ ggplot2::ggsave(
 )
 
 
-#*****************************************************#
+# _______________________________________________________
 ## SA ----
-#*****************************************************#
+# _______________________________________________________
 trait_SA <- trait_data_bind[continent == "SA", ]
 trait_SA[trait_profile_groups$SA, group := i.group,
          on = "family"]
@@ -421,7 +428,6 @@ trait_SA_lf[, group := factor(group)]
 # Create trait label for plotting
 trait_SA_lf[, trait_label := as.character(sub("([a-z]{1,})(\\_)(.+)", "\\3", trait))]
 trait_SA_lf[, trait_label := factor(trait_label, levels = unique(trait_label))]
-trait_SA_lf$group %>% unique
 
 # names for grouping features 
 grouping_feature_names <- c(
@@ -438,9 +444,7 @@ grouping_feature_names <- c(
   "5" = "TPG 5",
   "6" = "TPG 6",
   "7" = "TPG 7",
-  "8" = "TPG 8",
-  "9" = "TPG 9",
-  "10" = "TPG 10"
+  "8" = "TPG 8"
 )
 
 # Plot TPGs and expressed traits
@@ -486,28 +490,28 @@ for(i in names(dendrograms)){
     plot(., horiz = TRUE)
   dev.off()
 }
-
+  
 # prepare outlier dataset for quick overview
 outliers <- rbindlist(list(
   # AUS: "Heteroceridae", "Limnichidae"
   "AUS" = trait_AUS[family %in% c("Heteroceridae",
-                                  "Limnichidae"), ],
+                                  "Cecidomyiidae"), ],
   # EUR: "Chrysomelidae", "Ephemeridae"
   "EU" = trait_EU[family %in% c("Chrysomelidae",
                                 "Ephemeridae",
                                 "Baetidae",
-                                "Corixidae"),],
+                                "Corixidae",
+                                "Syrphidae"),],
   # NOA: "Dixidae", "Sisyridae"
-  "NOA" = trait_NOA[family %in% c("Dixidae",
-                                  "Sisyridae"),],
+  "NOA" = trait_NOA[family %in% c("Behningiidae",
+                                  "Corixidae"),],
   # NZ
   "NZ" = trait_NZ[family %in% c("Stratiomyidae",
                                 "Tanyderidae",
                                 "Simuliidae",
                                 "Hydrometridae"), ],
-  "SA" = trait_SA[family %in% c("Libellulidae",
-                                "Coenagrionidae",
-                                "Gomphidae"),]
+  "SA" = trait_SA[family %in% c("Polymitarcyidae", 
+                                "Prosopistomatidae"),]
 ),
 idcol = "continent")
 saveRDS(outliers,
@@ -549,3 +553,44 @@ for(cont in c("AUS", "EU", "NOA", "NZ")) {
 # Hydrometridae: spherical & cylindrical, predator, crawling, ovip_aqu & ovip_ter, resp_pls_spi, size_medium & size_small, volt_bi_multi
 # Simuliidae: cylindrical, herbivore & filterer, sessil, aquatic oviposition, resp_teg & resp_gil, size_small, volt_bi_multi
 # Tanyderidae
+
+
+
+# # long format
+outliers_lf <-
+  melt(
+    outliers,
+    id.vars = c("continent", "group", "family", "order"),
+    variable.name = "trait",
+    value.name = "affinity"
+  )
+outliers_lf[lookup_traits,
+            trait_label := i.trait_label,
+            on = "trait"]
+outliers_lf[, grouping_feature := sub("([a-z]{1,})(\\_)(.+)", "\\1", trait)]
+outliers_lf <- outliers_lf[affinity > 0.5, ]
+outliers_lf[trait == "bf_spherical", trait_label := "spherical"]
+outliers_lf <- outliers_lf %>% arrange(factor(
+  grouping_feature,
+  levels = c(
+    "locom",
+    "bf",
+    "ovip",
+    "size",
+    "feed",
+    "resp",
+    "volt"
+  ))) %>%
+  .[, paste(trait_label, collapse = ", "),
+    by = c("continent", "group", "family")] %>%
+  .[order(continent, group), ]
+setnames(outliers_lf,
+         "V1",
+         "defining_tc")
+fwrite(outliers_lf,
+      file = "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Paper/Tables/outliers.csv", sep = ";")
+
+
+
+
+

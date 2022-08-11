@@ -45,6 +45,10 @@ for (region in c("AUS", "EU", "NOA", "NZ", "SA")) {
   # The gap statstic, works also well when data
   # fall into "one cluster" (i.e. indication that there is no cluster structure
   # if this is the case)
+  # For North America, suggestions from "gap" switch between 8 and 11 groups
+  # Simulation showed (test_nr_clusters.R) that 8 groups are slighly favoured. 
+  # The resulting trait profile groups are not too different either in terms
+  # of their defining traits 
   gap <- clusGap(
     x = as.matrix(dist_mat),
     FUN = mycluster_hc,

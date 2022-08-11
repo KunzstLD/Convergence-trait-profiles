@@ -22,6 +22,8 @@ library(dplyr)
 library(data.table)
 library(Hmisc)
 library(zeallot)
+library(stringdist)
+library(tidystringdist)
 
 # Plotting
 library(ggplot2)

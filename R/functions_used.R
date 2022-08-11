@@ -157,7 +157,7 @@ extract_train_error <- function(data) {
 # Clustering --------------------------------------------------------------
 mycluster_hc <- function(x, k) {
   list(cluster = cutree(hclust(as.dist(x),
-                               method = "ward.D2"),
+                               method = "ward.D"),
                         k = k))
 }
 

@@ -208,7 +208,7 @@ pl_contour <- ggplot(pcoa_scores, aes(x = A1, y = A2)) +
     panel.grid = element_blank()
   )
 # Interactive view with plotly
-ggplotly(pl_contour)
+# ggplotly(pl_contour)
 ggsave(
   filename = file.path(
     data_paper,
