@@ -2,30 +2,25 @@
 .Rhistory
 .RData
 .Ruserdata
-
 # Rproj file
 *.Rproj
-
 # Output
 Output/
 Paper/Graphs/
-
 # Data
 Comparison_between_climatic_zones/Data/
-
 # Paper folder 
 Paper/
-
 # Powell Center
 USGS_Powell_center/
-
 # Docs
 Docs/
-
 # Old
 Old_comparison_climatic_zones
-
 # Stuff related cr analysis
 Project_luc.md
 ecoregions_europe.png
 definition_major_climatic_zones.txt
+# vscode settings
+.vscode/
+.httr-oauth
