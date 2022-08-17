@@ -194,8 +194,7 @@ grouping_feature_names <- c(
   "5" = "TPG 5",
   "6" = "TPG 6",
   "7" = "TPG 7",
-  "8" = "TPG 8",
-  "9" = "TPG 9"
+  "8" = "TPG 8"
 )
 
 # Plot TPGs and expressed traits
@@ -256,8 +255,7 @@ grouping_feature_names <- c(
   "6" = "TPG 6",
   "7" = "TPG 7",
   "8" = "TPG 8",
-  "9" = "TPG 9",
-  "10" = "TPG 10"
+  "9" = "TPG 9"
 )
 
 # plot
@@ -317,10 +315,7 @@ grouping_feature_names <- c(
   "5" = "TPG 5",
   "6" = "TPG 6",
   "7" = "TPG 7",
-  "8" = "TPG 8",
-  "9" = "TPG 9",
-  "10" = "TPG 10",
-  "11" = "TPG 11"
+  "8" = "TPG 8"
 )
 
 # plot
@@ -378,15 +373,7 @@ grouping_feature_names <- c(
   "4" = "TPG 4",
   "5" = "TPG 5",
   "6" = "TPG 6",
-  "7" = "TPG 7",
-  "8" = "TPG 8",
-  "9" = "TPG 9",
-  "10" = "TPG 10",
-  "11" = "TPG 11",
-  "12" = "TPG 12",
-  "13" = "TPG 13",
-  "14" = "TPG 14",
-  "15" = "TPG 15"
+  "7" = "TPG 7"
 )
 
 # plot
@@ -444,7 +431,9 @@ grouping_feature_names <- c(
   "5" = "TPG 5",
   "6" = "TPG 6",
   "7" = "TPG 7",
-  "8" = "TPG 8"
+  "8" = "TPG 8",
+  "9" = "TPG 9",
+  "10" = "TPG 10"
 )
 
 # Plot TPGs and expressed traits
@@ -473,6 +462,7 @@ saveRDS(object = trait_CONT,
 # _______________________________________________________
 # Outliers ----
 # Results from single linkage clustering
+# TODO: Check again at a later stage
 # _______________________________________________________
 for(i in names(dendrograms)){
   png(

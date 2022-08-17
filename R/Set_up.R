@@ -58,6 +58,9 @@ library(vegan)
 library(coRanking)
 library(ks)
 
+# Null models
+library(combinat)
+
 # Spatial operations
 library(sf)
 library(maptools)

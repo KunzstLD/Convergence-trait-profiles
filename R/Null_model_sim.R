@@ -17,38 +17,44 @@
 
 # 1) Global pool with families 
 #   - Several families occur on multiple continents/regions. Hence, use together with their 
-# orginal continent for mergining back trait information
+# original continent for merging back trait information
 # 2) Take random sample from global pool, respect initial numbers 
 trait_data_bind <- readRDS(file = file.path(data_cache,
                                             "trait_data_ww_bind.rds"))
 trait_data_bind[, id := paste0(continent, "_", family)]
+# test data
+# test <- trait_data_bind[continent %in% c("AUS", "EU"), .SD[1:5], by = "continent"]
+trait_data_bind_sim <- copy(trait_data_bind)
 
-test <- trait_data_bind[continent %in% c("AUS", "EU"), .SD[1:5], by = "continent"]
+n_families <- trait_data_bind_sim[, .N, by = "continent"]
+trait_data_bind_sim[, continent := NULL]
 
-
-n_families <- test[, .N, by = "continent"]
-test[, continent := NULL]
-family_pool <- test[, id]
-
+# Sample the global family pool
+family_pool <- trait_data_bind_sim[, id]
 families_sampled <- NULL
 sim_data <- list()
 
-# Sample the global family pool
 for(i in n_families$continent) {
+  # Problem?: AUS can always draw from the whole family pool, while the others have less
+  # options
+  # Order to which continent families are assigned should be mixed
+  # OR: can assignment happen simultaneously?
+  
   # Update the family pool after each round so that families do not get assigned twice
   family_pool <- family_pool[!family_pool %in% families_sampled]
   n <- n_families[continent == i, N]
   families_sampled <- sample(family_pool, size = n)
   
   # subset trait data
-  sim_data[[i]] <- test[id %in% families_sampled,]
+  sim_data[[i]] <- trait_data_bind_sim[id %in% families_sampled,]
 }
 
-# Apply clustering
-# Calculate Overlap (no PCOA?)
+
+# 1) Calculate overlap (no PCOA?)
+# Pianka or Ellipses?
+
+# 2) Apply clustering
 # Delineate TPGs
-
-
 # TPGs:
 # Same shuffling as for the niche overlap
 # RDA; Cluster approach from PUP?

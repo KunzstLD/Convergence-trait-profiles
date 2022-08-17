@@ -34,7 +34,7 @@ for (region in c("AUS", "EU", "NOA", "NZ", "SA")) {
   
   # Clustering ---------------------------------------------------------
   # hc_taxa <- hclust(as.dist(dist_mat), method = "ward.D")
-  hc_taxa <- hclust(dist_mat, method = "ward.D")
+  hc_taxa <- hclust(dist_mat, method = "ward.D2")
   
   # Get labels of dendrogram
   dend_label <- hc_taxa %>%
@@ -91,6 +91,7 @@ saveRDS(
     "hc_output_ww.rds"
   )
 )
+# lapply(hc_output, function(y) y$optimal_nog)
 
 # ___________________________________________________________________________
 # How would the results differ if another agglomeration method is used? -----

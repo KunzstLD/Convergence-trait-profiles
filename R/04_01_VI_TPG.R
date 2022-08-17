@@ -26,16 +26,16 @@ trait_dat <- list(
   "NZ" = trait_NZ,
   "SA" = trait_SA
 )
-
+  
 # Check distribution within groups (family richness)
 obs_group <- lapply(trait_dat, function(y) y[, .N, by = group])
 obs_group <- rbindlist(obs_group, idcol = "continent")  
-obs_group[, group := factor(group, levels = c(1:11))]
+obs_group[, group := factor(group, levels = c(1:10))]
 ggplot(obs_group, aes(x = group, y = N)) +
   geom_pointrange(aes(ymin = 0, ymax = N)) +
   facet_wrap(as.factor(continent) ~., 
              scales = "free") +
-  ylim(0, 25)
+  ylim(0, 30)
 
 # "group" should be a factor variable 
 trait_dat <- lapply(trait_dat, function(y) y[, group := factor(make.names(group))])
@@ -157,14 +157,14 @@ perf_summary <- cbind(scores_test, scores_train)
 setDT(perf_summary)
 setcolorder(perf_summary,
             neworder = "continent")
-saveRDS(perf_summary, file.path(data_cache, "perf_summary.rds"))
+# saveRDS(perf_summary, file.path(data_cache, "perf_summary.rds"))
 
 # Most important variables
 most_imp_vars <-
   lapply(most_imp_vars, function(y)
     as.data.frame(y)) %>%
   do.call(rbind, .)
-saveRDS(most_imp_vars, file = file.path(data_cache, "most_imp_vars.rds"))
+# saveRDS(most_imp_vars, file = file.path(data_cache, "most_imp_vars.rds"))
 
 ## Plot permutation importance ----
 most_imp_vars <- readRDS(file.path(data_cache, "most_imp_vars.rds"))
@@ -174,8 +174,8 @@ most_imp_vars$continents <- continents
 most_imp_vars$traits <- rownames(most_imp_vars)
 setDT(most_imp_vars)
 most_imp_vars[, traits := sub("([A-Z]{2,})(\\.)(.+)", "\\3", traits)]
-most_imp_vars[continents == "NZ", ] %>% 
-  .[order(-y), ]
+# most_imp_vars[continents == "NZ", ] %>% 
+#   .[order(-y), ]
 
 # most important
 most_imp_vars[order(continents, -y),  five_most_imp := c(head(traits, n = 5), rep(NA, 17)),
@@ -193,21 +193,19 @@ wrap_names <- c(
   "NZ" = "NZ",
   "SA" = "SA"
 )
-ggplot(most_imp_vars[order(continents, -y), ],
+ggplot(most_imp_vars[order(continents, -y),],
        aes(x = as.factor(traits),
            y = y)) +
-  geom_pointrange(aes(
-    ymin = 0,
-    ymax = y,
-    color = as.factor(continents)
-  )) +
-  geom_text_repel(mapping = aes(
-              x = as.factor(traits),
-              y = y + 0.009,
-              label = five_most_imp
-            ), 
-            size = 6,
-            nudge_x = 0.4) +
+  geom_col() +
+  geom_text(
+    mapping = aes(
+      x = as.factor(traits),
+      y = y + 0.01,
+      label = five_most_imp
+    ),
+    size = 4.1,
+    nudge_x = 0.02
+  ) +
   facet_grid(as.factor(continents), labeller = as_labeller(wrap_names)) +
   labs(x = "",
        y = "Permutation importance") +
@@ -215,17 +213,19 @@ ggplot(most_imp_vars[order(continents, -y), ],
   theme_bw() +
   theme(
     axis.title = element_text(size = 16),
-    axis.text.x = element_blank(),
-    axis.ticks.x = element_blank(),
+    axis.text.x = element_text(
+      family = "Roboto Mono",
+      size = 14,
+      angle = 90
+    ),
     axis.text.y = element_text(family = "Roboto Mono",
-                               size = 12),
+                               size = 14),
     legend.title = element_text(family = "Roboto Mono",
                                 size = 16),
     legend.text = element_text(family = "Roboto Mono",
                                size = 14),
     strip.text = element_text(family = "Roboto Mono",
                               size = 14),
-    # panel.grid = element_blank(),
     legend.position = "none"
   )
 ggplot2::ggsave(
@@ -233,9 +233,8 @@ ggplot2::ggsave(
                        "Graphs",
                        "Trait_importance_summary.png"),
   width = 50,
-  height = 35,
-  units = "cm",
-  dpi = 400
+  height = 30,
+  units = "cm"
 )
 
 # Variable selection with wrapper algorithm Boruta ----

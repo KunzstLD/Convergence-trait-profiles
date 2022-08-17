@@ -4,6 +4,8 @@ output: html_document
 knit: (function(inputFile, encoding) {
   rmarkdown::render(inputFile, encoding = encoding, 
                     output_dir = "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Paper/Tables/") })
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -53,7 +55,6 @@ def_traits <-
   readRDS(
     "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/def_traits.rds"
   )
-
 reactable(
   def_traits[
     order(continent, group),
@@ -315,8 +316,6 @@ ggplot(liv_pub,
     legend.position = "none"
   )
 
-
-
 # boruta
 boruta_res <-
   readRDS(
@@ -365,8 +364,8 @@ reactable(
   columns = list(
     continents = colDef(name = "Continent",
                        width = 120),
-    traits_perm_imp = colDef(name = "Most important traits permutation importance"),
-    traits_boruta = colDef(name = "Most important traits Boruta")
+    traits_perm_imp = colDef(name = "Least important traits permutation importance"),
+    traits_boruta = colDef(name = "Least important traits Boruta")
   ),
   filterable = TRUE,
   highlight = TRUE,

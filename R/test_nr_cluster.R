@@ -1,5 +1,4 @@
 # Test Optimal number of clusters stability
-
 traits_ww <- readRDS(file.path(
   data_cache,
   "preproc_traits.rds"
@@ -8,8 +7,8 @@ traits_ww <- readRDS(file.path(
 # Hierarchical clustering
 list_nog <- list()
 
-for (iter in 1:10) {
-    for (region in c("AUS", "EU", "NOA", "NZ", "SA")) {
+for (iter in 1:1000) {
+    for (region in c("NOA")) {
         dat <- traits_ww[[region]]
 
         # Create dist. matrix using Overlap index Manly ---------------------
@@ -50,3 +49,5 @@ for (iter in 1:10) {
     }
     list_nog[[iter]] <- optimal_nog
 }
+sum(unlist(list_nog) == 8)
+sum(unlist(list_nog) == 11)
