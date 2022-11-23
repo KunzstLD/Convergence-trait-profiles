@@ -7,6 +7,7 @@
 
 # Read in trait data with group assignment
 trait_CONT <- readRDS(file.path(data_cache, "trait_dat_grp_assig.rds"))
+# trait_CONT[, uniqueN(group), by = "continent"]
 
 # __________________________________________________________________________________________________
 # TPGs ----
@@ -56,69 +57,15 @@ cluster_occ <-
 # cluster_occ[order %in% c("Ephemeroptera", "Trichoptera", "Diptera", "Plecoptera"), ]
 cluster_occ[order(-occ_in_cluster), ]
 
-# Plotting
-# tpg_names <- c(
-#   "1" = "TPG 1",
-#   "2" = "TPG 2",
-#   "3" = "TPG 3",
-#   "4" = "TPG 4",
-#   "5" = "TPG 5",
-#   "6" = "TPG 6",
-#   "7" = "TPG 7",
-#   "8" = "TPG 8",
-#   "9" = "TPG 9",
-#   "10" = "TPG 10",
-#   "AUS" = "AUS",
-#   "EU" = "EUR",
-#   "NOA" = "NA",
-#   "NZ" = "NZ",
-#   "SA" = "SA"
-# )
-# ggplot(trait_CONT_wf,
-#        aes(x = as.factor(group),
-#            y = prop_order * 100)) +
+# New attempt, difficult to visualize since orders are on the x-axis
+# better in a table?
+# unique(trait_CONT_wf[, .(continent, group, order, prop_order)]) %>%
+#  .[group %in% c(1,2) & continent %in% c("AUS", "EU"), ] %>%
+#   ggplot(.,
+#          aes(x = as.factor(order),
+#              y = prop_order*100)) +
 #   geom_col() +
-#   # geom_pointrange(aes(
-#   #   ymin = 0,
-#   #   ymax = prop_order * 100,
-#   #   color = as.factor(continent)
-#   # )) +
-#   geom_text(data = cluster_size,
-#             mapping = aes(
-#               x = 1,
-#               y = 80,
-#               label = paste0("n = ", n_families_gr)
-#             ), 
-#             size = 5) +
-#   facet_grid(order ~ as.factor(continent),
-#              labeller = as_labeller(tpg_names),
-#              scales = "free") +
-#   coord_flip() +
-#   labs(x = "Order",
-#        y = "Proportion of families that belong to a certain order",
-#        color = "Region") +
-#   scale_color_d3() +
-#   theme_bw() +
-#   theme(
-#     axis.title = element_text(size = 16),
-#     axis.text.x = element_text(
-#       family = "Roboto Mono",
-#       size = 12,
-#       angle = 45,
-#       vjust = 0.6 # ,
-#       #    hjust = 0.7
-#     ),
-#     axis.text.y = element_text(family = "Roboto Mono",
-#                                size = 12),
-#     legend.title = element_text(family = "Roboto Mono",
-#                                 size = 16),
-#     legend.text = element_text(family = "Roboto Mono",
-#                                size = 14),
-#     strip.text = element_text(family = "Roboto Mono",
-#                               size = 14),
-#     # panel.grid = element_blank(),
-#     legend.position = "none"
-#   )
+#   facet_grid(as.factor(continent) ~ group)
 # ggplot2::ggsave(
 #     filename = file.path(data_paper,
 #                          "Graphs",
@@ -128,16 +75,21 @@ cluster_occ[order(-occ_in_cluster), ]
 #     units = "cm",
 #     dpi = 600
 #   )
+prop_order_tpg <- unique(trait_CONT_wf[, .(continent, group, order, prop_order, n_families_gr)]) %>%
+  .[, .(continent, group, order, prop_order = round(prop_order, digits = 3)*100, n_families_gr)] %>% 
+  dcast(., ... ~ order, value.var = "prop_order")
+setnames(prop_order_tpg,
+         c("continent", "group", "n_families_gr"),
+         c("Continent", "TPG", "Nr. families TPG"))
+# fwrite(prop_order_tpg, 
+#        file.path(data_paper, "Tables", "prop_order_tpg.csv"), 
+#        sep = ";")
 
-# New attempt, difficult to visualize since orders are on the x-axis
-# better in a table?
-# unique(trait_CONT_wf[, .(continent, group, order, prop_order)]) %>%
-#  .[group %in% c(1,2) & continent %in% c("AUS", "EU"), ] %>% 
-#   ggplot(.,
-#          aes(x = as.factor(order),
-#              y = prop_order*100)) +
-#   geom_col() +
-#   facet_grid(as.factor(continent) ~ group)
+# Distribution of orders
+# unique(trait_CONT_wf[, .(continent, group, order, prop_order, n_families_gr)]) %>%
+#   .[, .(continent, group, order, prop_order = round(prop_order, digits = 3)*100, n_families_gr)] %>% 
+#   .[prop_order > 0, .N, by = c("continent", "order")] %>% 
+#   .[order(continent, -N), ]
 
 
 ## Defining traits ----
@@ -148,10 +100,15 @@ cluster_occ[order(-occ_in_cluster), ]
 trait_CONT[affinity > 0.5,
            prop_taxa_high_aff := .N / nr_families,
            by = .(continent, group, trait)]
-
+# saveRDS(trait_CONT, file.path(data_cache, "trait_CONT_prop_taxa_high.rds"))
 # Table for SI
 # saveRDS(trait_CONT[affinity > 0.5, ],
 #         file.path(data_cache, "def_traits_full.rds"))
+
+# Example families
+# unique(trait_CONT_wf[, .(continent, group, family, order, prop_order, n_families_gr)]) %>% 
+#   .[order(continent, group, -prop_order, order), ] %>% 
+#   .[continent == "SA" & group %in% c(7,8,9,10), ]
 
 # Get defining traits
 disting_traits <-
@@ -182,6 +139,7 @@ disting_traits_compl[, .(
   min_def_traits = min(nr_traits_group),
   max_def_traits = max(nr_traits_group)
 ), by = continent]
+# saveRDS(disting_traits_compl, file.path(data_cache, "disting_traits_compl.rds"))
 
 # Which traits did not define any TPG?
 # volt_semi, locom_burrow, bf_spherical
@@ -246,12 +204,18 @@ setnames(disting_traits,
 # Add id
 disting_traits[, tpg_id := paste0(continent, "_", group)]
 
-# Save
+# Save, table in paper
 # saveRDS(disting_traits,
 #         file = file.path(data_cache, "def_traits.rds"))
 
+# Example families
+trait_CONT[, .SD, by = c("continent", "group")] %>% 
+  .[order(continent, group), ]
+
 # Exact duplicates 
 disting_traits[duplicated(defining_tc) | duplicated(defining_tc, fromLast = TRUE), ]
+# trait_CONT[continent == "NZ" & group %in% c(3, 4) & affinity > 0.5, ] %>% 
+#   .[order(group), ]
 
 # Fuzzy matching
 tab_fmatch_tc <- disting_traits[, .(tidy_comb_all(defining_tc), continent)] %>%
@@ -278,12 +242,11 @@ tab_fmatch_tc[, .(occur_continent = uniqueN(continent)),
 
 # Consider distances between defining traits (in characters)
 tab_fmatch_tc[order(lv_dist), ]
-
-tab_fmatch_tc[, .(occur_continent = uniqueN(continent), lv_dist),
-              by = V1
-] %>% 
-  .[order(-occur_continent, lv_dist), ] %>%
-  View(.)
+# tab_fmatch_tc[, .(occur_continent = uniqueN(continent), lv_dist),
+#               by = V1
+# ] %>% 
+#   .[order(-occur_continent, lv_dist), ] %>%
+#   View(.)
 
 
 ## Explore different trait combinations ----
@@ -333,6 +296,8 @@ disting_traits[defining_tc %like% "predator" &
   .[order(continent), ] %>% 
   .[!tpg_id %in% global_pat_id, ]
 
+disting_traits[defining_tc %like% "small" &
+                 defining_tc %like% "plastron.*", ]
 
 global_pat_id2 <-
   disting_traits[defining_tc %like% "predator" &
@@ -348,7 +313,7 @@ disting_traits[defining_tc %like% "herbivore" &
                  defining_tc %like% "cylindrical" & 
                  defining_tc %like% "small", ]
 
-# # - crawling, medium, gills
+# - crawling, medium, gills
 disting_traits[defining_tc %like% "crawling" & defining_tc %like% "medium" & 
                  defining_tc %like% "gills", ] # %>% 
   # .[!tpg_id %in% c(global_pat_id, global_pat_id2), ]
@@ -364,17 +329,11 @@ disting_traits[defining_tc %like% "tegument", ]
 disting_traits[defining_tc %like% "bi/multivoltinism", ] # %>%
 #   .[!(tpg_id %in% global_pat_id | tpg_id %in% global_pat_id2), ]
 
-# Tegument, univoltnism, cylindrical, small
-# EU, NZ, NOA
-disting_traits[defining_tc %like% "tegument", ] 
-
-
-# 
 # # Crawling & large, mostly predators
 # disting_traits[defining_tc %like% "large", ]
 # trait_CONT[continent == "SA" & group == 5 & trait == "feed_predator",]
 # 
-# ### Between Australia, South Afria, and New Zealand ----
+# ### Between Australia, South Africa, and New Zealand ----
 # Specific TPGs similar in AUS, NZ & SA (more recent geological history)
 # Not really something specific
 # disting_traits[continent %in% c("AUS", "NZ", "SA"), ] %>%
@@ -382,8 +341,6 @@ disting_traits[defining_tc %like% "tegument", ]
 
 
 ### On 2 regions/continents ----
-disting_traits[defining_tc %like% "shredder",] %>%
-  .[!tpg_id %in% global_pat_id,]
 
 # Gatherer
 ## gills, crawling, small
@@ -408,8 +365,10 @@ disting_traits[defining_tc %like% "sessil", ] # %>%
 # - large
 disting_traits[defining_tc %like% "large", ]
  
-#### Traits that only occur once in a TPG/special TPGs ----
-# streamlined and ?  
+#### Traits that only occur in TPG in one continent/region & special TPGs ----
+# Only streamlined 
+disting_traits_compl[, .N, by = c("trait", "continent")] %>% 
+  .[order(trait, N), ]
 
 # Streamlined only in NOA
 # with filterer, gills, univoltinism
@@ -417,9 +376,5 @@ disting_traits[defining_tc %like% "streamlined", ] #%>%
 #   .[!(tpg_id %in% global_pat_id | tpg_id %in% global_pat_id2), ]
 
 
-# TPGs with similar defining trait combinations ----
-# NZ 3 & 4 Actually identical
-trait_CONT[continent == "NZ" & group %in% c(3,4), ] %>%
-  .[prop_taxa_high_aff >= 0.2, ] %>% 
-  .[order(group),]
-  .[order(group), uniqueN(family), by = c("group", "trait")]
+
+

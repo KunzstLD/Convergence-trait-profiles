@@ -11,7 +11,6 @@ trait_data_bind <- readRDS(file.path(
 # Preproc
 trait_data_bind[, id := paste0(continent, "_", family)]
 continent_names <- factor(trait_data_bind$continent)
-trait_data_bind_cp <- copy(trait_data_bind)
 trait_data_bind[, c("family", "order", "continent") := NULL]
 setDF(trait_data_bind)
 
@@ -26,17 +25,18 @@ blocks <- rle(vec)$lengths
 trait_data_bind <- prep.fuzzy(trait_data_bind, blocks)
 trait_data_bind <- ktab.list.df(list(trait_data_bind))
 comb_dist <- dist.ktab(trait_data_bind, type = "F")
-is.euclid(comb_dist)
+# is.euclid(comb_dist)
 
 # PcOA
 comb_pcoa <- dudi.pco(comb_dist, scannf = FALSE, nf = 25)
 summary(comb_pcoa)
+# saveRDS(comb_pcoa, file.path(data_cache, "comb_pcoa.rds"))
 
 # Explained variance
 # 10 axis explain more than 80 %
 # 5 axis around 57 %
-sum(comb_pcoa$eig[1:10])/sum(comb_pcoa$eig)
-sum(comb_pcoa$eig[1:5])/sum(comb_pcoa$eig)
+# sum(comb_pcoa$eig[1:10])/sum(comb_pcoa$eig)
+# sum(comb_pcoa$eig[1:5])/sum(comb_pcoa$eig)
 
 # Factor map with colors for the different continents
 # s.label(comb_pcoa$li, clabel = 0.7) # Fig. 2 in the main text
@@ -52,10 +52,9 @@ Q <- coranking(Xi = comb_dist,
 NX <- coRanking::R_NX(Q)
 coRanking::AUC_ln_K(NX)
 
-
 ## Plotting ----
 # Add loads? Eigenvector * sq.root eigenvalue
-# ? comb_pcoa$l1
+# comb_pcoa$l1
 # comb_pcoa$tab
 
 # Plot scores and hulls for the different continents
@@ -63,95 +62,10 @@ pcoa_scores <- comb_pcoa$li[1:2]
 pcoa_scores$id <- rownames(pcoa_scores)
 setDT(pcoa_scores)
 pcoa_scores[, continent := factor(sub("(\\w)(\\_)(.+)", "\\1", id))]
-saveRDS(pcoa_scores, file = file.path(data_cache, "pcoa_scores.rds"))
+# saveRDS(pcoa_scores, file = file.path(data_cache, "pcoa_scores.rds"))
 
-# Hulls for each continent
-hull <- pcoa_scores %>%
-  group_by(continent) %>%
-  slice(chull(A1, A2))
-saveRDS(hull, file.path(data_cache, "hull_pcoa.rds"))
-
-### Tait space plot ----
-pcoa_plot <- ggplot(pcoa_scores, aes(x = A1, y = A2)) +
-  geom_point(alpha = 0.15) +
-  geom_polygon(data = hull, alpha = 0.05,
-               aes(color = continent)) +
-  scale_color_d3(name = "Continent",
-                 labels = c("AUS", "EUR", "NA", "NZ", "SA")) +
-  labs(x = paste0("Axis 1",
-                  " (",
-                  round(
-                    comb_pcoa$eig[1] / sum(comb_pcoa$eig) * 100,
-                    digits = 2
-                  ),
-                  "%)"),
-       y = paste0("Axis 2", " (", round(
-         comb_pcoa$eig[2] / sum(comb_pcoa$eig) * 100,
-         digits = 2
-       ), "%)")) +
-  theme_bw() +
-  theme(
-    axis.title = element_text(size = 16),
-    axis.text.x = element_text(family = "Roboto Mono",
-                               size = 14),
-    axis.text.y = element_text(family = "Roboto Mono",
-                               size = 14),
-    legend.title = element_text(family = "Roboto Mono",
-                                size = 16),
-    legend.text = element_text(family = "Roboto Mono",
-                               size = 14),
-    strip.text = element_text(family = "Roboto Mono",
-                              size = 14),
-    panel.grid = element_blank()
-  )
-ggsave(
-  filename = file.path(
-    data_paper,
-    "Graphs",
-    "PCOA_continent.png"
-  ),
-  width = 35,
-  height = 20,
-  units = "cm"
-)
-
-# Plot those taxa from Australia that do not overlap with the other trait spaces (on the first two PCOA axis) 
-pcoa_plot + geom_text_repel(
-  data = function(x) {
-    x[continent == "AUS", ]
-  },
-  aes(label = id)
-)
-pcoa_scores[, family := sub("(.+)\\_", "", id)]
-
-pcoa_plot + geom_text_repel(
-  data = function(x) {
-    x[continent == "AUS" & family %in% c(
-      "Veliidae",
-      "Pleidae",
-      "Hydrometridae",
-      "Notonectidae",
-      "Dytiscidae",
-      "Gerridae",
-      "Hygrobiidae",
-      "Eustheniidae",
-      "Synthemistidae",
-      "Libellulidae",
-      "Corduliidae"
-    ), ]
-  },
-  aes(label = family)
-)
-ggsave(
-  filename = file.path(
-    data_paper,
-    "Graphs",
-    "PCOA_continent_AUS_outliers.png"
-  ),
-  width = 35,
-  height = 20,
-  units = "cm"
-)
+# Plot convex hulls for each continent 
+# See 02_01_01_Convex_hulls.R
 
 ### Contour/density plot ----
 # Calculate with kde to get exact contour lines

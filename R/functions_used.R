@@ -113,7 +113,7 @@ normalize_by_rowSum <- function(x,
     # divide values for each trait state by
     # the sum of trait state values
     x[, (col_name) := lapply(.SD, function(y) {
-      round(y / rowSum, digits = 2)
+      y / rowSum
     }),
     .SDcols = names(x) %like% cols]
   }
@@ -151,17 +151,17 @@ extract_train_error <- function(data) {
 
 
 # __________________________________________________________________________________________________
-#### Statistical Analysis ####
+#### Clustering ####
 # __________________________________________________________________________________________________
-
-# Clustering --------------------------------------------------------------
 mycluster_hc <- function(x, k) {
   list(cluster = cutree(hclust(as.dist(x),
                                method = "ward.D2"),
                         k = k))
 }
 
-# RF Analysis ------------------------------------------------------------
+# __________________________________________________________________________________________________
+#### RF Analysis ####
+# __________________________________________________________________________________________________
 
 # Custom prediction function
 custom_pred <- function(object, newdata) {
@@ -171,6 +171,7 @@ custom_pred <- function(object, newdata) {
 }
 
 # Meta rf function with hyperparameter tuning 
+# old, now with mlr3
 meta_rf <- function(train,
                     test) {
   
@@ -257,9 +258,10 @@ meta_rf <- function(train,
     "pred_test" = pred_test)
 }
 
+# __________________________________________________________________________________________________
 ### Multivariate Welch-Test ####
 # https://github.com/alekseyenko/WdStar
-
+# __________________________________________________________________________________________________
 dist.ss2 = function(dm2, f){ #dm2 is matrix of square distances; f factor
   K = sapply(levels(f), function(lev) f==lev)
   t(K)%*%dm2%*%K/2
@@ -333,7 +335,7 @@ WdS.test <- function(dm, f, nrep = 999, strata = NULL) {
 #### Plotting ####
 # _________________________________________________________________________
 
-# Dendrogram plot ---------------------------------------------------------
+##### Dendrogram plot ####
 fun_dendrog_pl <- function(hc,
                            optimal_nog,
                            labels,
@@ -347,7 +349,7 @@ fun_dendrog_pl <- function(hc,
     set("labels", labels) 
 }
 
-# Heatmap plot -----------------------------------------------------------
+##### Heatmap plot ####
 # Create heatmap with ggplot for TPGs and Grouping features for each continent
 # Columns of data are hardcoded, maybe change in the future
 fun_heatmap_single_cont <- function(data) {
@@ -430,7 +432,7 @@ fun_heatmap_tpg <- function(data,
     )
 }
 
-# Helper function to plot boruta results --------------------------------------
+##### Helper function to plot boruta results ####
 
 # Does require data.table
 # Takes as input a result from attStats() on an object created by boruta()
@@ -497,3 +499,267 @@ direct_agg <- function(trait_data,
   ]
   agg_data
 }
+
+# __________________________________________________________________________________________________
+#### Null Models ####
+# __________________________________________________________________________________________________
+
+# Calculate pcoa for simulated datasets
+# id column should be created before
+calc_pcoa <-
+  function(x,
+           traits = c("feed", "resp", "volt", "locom", "size", "bf")) {
+    trait_patterns <- paste0(traits, collapse = ".*|")
+    x <- x[, .SD, .SDcols = patterns(paste0(trait_patterns, "|id"))]
+    setDF(x)
+    
+    taxa_reg_names <- x$id
+    row.names(x) <- taxa_reg_names
+    x$id <- NULL
+    
+    # Konvert to ktab object
+    vec <- sub("\\_.*", "\\1", names(x))
+    blocks <- rle(vec)$lengths
+    x <- prep.fuzzy(x, blocks)
+    x <- ktab.list.df(list(x))
+    dist <- dist.ktab(x, type = "F")
+    
+    # PcOA
+    pcoa <- dudi.pco(dist, scannf = FALSE, nf = 25)
+  }
+
+# Transform pcoa element obtained from "calc_pcoa" into a data.table
+transf_pcoa_dt <- function(pcoa_obj){
+  pcoa_scores <- pcoa_obj$li[1:2]
+  pcoa_scores$id <- rownames(pcoa_scores)
+  setDT(pcoa_scores)
+}
+
+# Calculate convex hull for first two PCoA axes
+# and subsequently overlap between the continents/regions
+calc_cnx_hull <- function(scores) {
+  hull <- scores %>%
+    group_by(continent) %>%
+    slice(chull(A1, A2))
+  setDT(hull)
+  hull_split <- split(hull[, .(A1, A2)], f = hull$continent)
+  list(
+    "Overlap" = Overlap(hull_split),
+    "Overlap_symmetric" = Overlap(hull_split, symmetric = TRUE)
+  )
+}
+
+# Calculate ellipses for first two PCoA axes
+# Maximum likelihood approach
+calc_ellipses <- function(scores,
+                          ellipses = c("1.AUS",
+                                       "1.EU",
+                                       "1.NOA",
+                                       "1.NZ",
+                                       "1.SA")) {
+  # we just have one community
+  pcoa_siber <- createSiberObject(scores[, .(
+    iso1 = A1,
+    iso2 = A2,
+    group = continent,
+    community = 1
+  )])
+  
+  # Calculate all possible permutations of ellipses
+  perm_ellipses <- gtools::permutations(n = 5,
+                                        r = 2,
+                                        v = ellipses)
+  perm_ellipses <- as.data.frame(perm_ellipses)
+  rownames(perm_ellipses) <- paste0(perm_ellipses$V1,
+                                    "_",
+                                    perm_ellipses$V2)
+  
+  # Calc overlap
+  ellipse95_overlap <- list()
+  for (i in 1:nrow(perm_ellipses)) {
+    ellipse95_overlap[[i]] <- maxLikOverlap(
+      perm_ellipses[i, "V1"],
+      perm_ellipses[i, "V2"],
+      pcoa_siber,
+      p.interval = 0.95,
+      n = 100
+    )
+  }
+  names(ellipse95_overlap) <- rownames(perm_ellipses)
+  ellipse95_overlap
+}
+
+
+# Hierarchical clustering & optimal number of groups
+# method is ward.D2
+# uses funciton mycluster_hc
+calc_clustering <-
+  function(x,
+           traits = c("feed", "resp", "volt", "locom", "size", "bf")) {
+    trait_patterns <- paste0(traits, collapse = ".*|")
+    x <- x[, .SD, .SDcols = patterns(paste0(trait_patterns, "|id"))]
+    setDF(x)
+    
+    taxa_reg_names <- x$id
+    row.names(x) <- taxa_reg_names
+    x$id <- NULL
+    
+    # Konvert to ktab object
+    vec <- sub("\\_.*", "\\1", names(x))
+    blocks <- rle(vec)$lengths
+    x <- prep.fuzzy(x, blocks)
+    x <- ktab.list.df(list(x))
+    dist <- dist.ktab(x, type = "F")
+    
+    # HC & optimal number of clusters
+    hc <- hclust(dist, method = "ward.D2")
+    dend <- as.dendrogram(hc)
+    
+    gap <- clusGap(
+      x = as.matrix(dist),
+      FUN = mycluster_hc,
+      K.max = 15,
+      B = 500
+    )
+    
+    optimal_nog <- maxSE(gap$Tab[, "gap"],
+                         gap$Tab[, "SE.sim"],
+                         method = "Tibs2001SEmax")
+    list("hc" = hc,
+         "dend" = dend,
+         "optimal_nog" = optimal_nog)
+  }
+
+# Add TPGs to simulated datasets
+add_tpgs_td <- function(cl_obj) {
+  results <- list()
+  for (i in names(cl_obj)) {
+    results[[i]] <-
+      data.table(
+        family = names(
+          cutree(
+            cl_obj[[i]]$dend,
+            k = cl_obj[[i]]$optimal_nog,
+            order_clusters_as_data = FALSE
+          )
+        ),
+        group = cutree(
+          cl_obj[[i]]$dend,
+          k = cl_obj[[i]]$optimal_nog,
+          order_clusters_as_data = FALSE
+        )
+      )
+  }
+  results <- rbindlist(results, idcol = "continent")
+}
+
+# Calculate dbrda for mean trait profiles
+calc_dbrda <-
+  function(t_data,
+           traits = c("feed", "resp", "volt", "locom", "size", "bf")) {
+    trait_patterns <- paste0(traits, collapse = ".*|")
+    x <- t_data[, .SD, .SDcols = patterns(paste0(trait_patterns, "|id"))]
+    setDF(x)
+    
+    taxa_reg_names <- x$id
+    row.names(x) <- taxa_reg_names
+    x$id <- NULL
+    
+    # Convert to ktab object
+    vec <- sub("\\_.*", "\\1", names(x))
+    blocks <- rle(vec)$lengths
+    x <- prep.fuzzy(x, blocks)
+    x <- ktab.list.df(list(x))
+    dist <- dist.ktab(x, type = "F")
+    
+    # dbrda with continents
+    dbrda_res <- dbrda(formula = dist ~ continent, data = t_data)
+    dbrda_res <- summary(dbrda_res)
+    expl_var <- dbrda_res$constr.chi / dbrda_res$tot.chi
+  }
+
+# RF with tpgs as dependent variable
+calc_rf_tpgs <- function(x,
+                         traits = c("feed", "resp", "volt", "locom", "size", "bf")) {
+  most_imp_vars <- list()
+  # ls_instance <- list()
+  # scores_test <- list()
+  # scores_train <- list()
+  trait_pat <- paste0(traits, collapse = ".*|")
+  for (cont in unique(x$continent)) {
+    set.seed(1234)
+    dat <- x[continent == cont, ]
+    dat <-
+      dat[, .SD, .SDcols = patterns(paste0(trait_pat, "|group"))]
+    
+    # Split in train and test data (stratified)
+    ind <- createDataPartition(dat$group, p = 0.7)
+    train <- dat[ind[[1]],]
+    test <- dat[-ind[[1]],]
+    
+    # Create tasks
+    task_train <- TaskClassif$new(
+      id = paste0(cont, "_train"),
+      backend = train,
+      target = "group"
+    )
+    
+    # Specify stratification for CV
+    task_train$col_roles$stratum <- "group"
+    
+    # Create random forest learner
+    # list of possible learners: mlr3learners
+    rf_learner <- lrn("classif.ranger",
+                      predict_type = "prob",
+                      importance = "permutation")
+    
+    # Set up search space
+    # rf_learner$param_set
+    search_space <- ps(
+      mtry = p_int(lower = 1, upper = length(task_train$data()) - 1),
+      min.node.size = p_int(lower = 1, upper = 10)#,
+      #  sample.fraction = p_dbl(lower = 0.632, upper = 0.8)
+    )
+    
+    # Resampling
+    resampling <- rsmp("cv",
+                       folds = 5L)
+    
+    # Performance measure for resampling (multivariate Brier score)
+    mbrier_metric <- mlr3::msr("classif.mbrier")
+    
+    # When to terminate tuning
+    evals <- trm("evals", n_evals = 100)
+    instance = TuningInstanceSingleCrit$new(
+      task = task_train,
+      learner = rf_learner,
+      resampling = resampling,
+      measure = mbrier_metric,
+      search_space = search_space,
+      terminator = evals
+    )
+    
+    # Optimization via grid search
+    tuner <- tnr("grid_search", resolution = 10)
+    tuner$optimize(instance)
+    # ls_instance[[cont]] <- instance
+    
+    # Train rf on train dataset with optimized parameters
+    rf_learner$param_set$values <-
+      instance$result_learner_param_vals
+    rf_learner$train(task_train)
+    pred_train <- rf_learner$predict_newdata(newdata = train)
+    # scores_train[[cont]] <- pred_train$score(mlr3::msr("classif.mbrier"))
+    
+    # Check model on test dataset
+    pred_test <- rf_learner$predict_newdata(newdata = test)
+    # scores_test[[cont]] <- pred_test$score(mlr3::msr("classif.mbrier"))
+    
+    # Retrieve most important variables
+    most_imp_vars[[cont]] <- rf_learner$importance()
+  }
+  list("most_imp_vars" = most_imp_vars)
+} 
+
+
+

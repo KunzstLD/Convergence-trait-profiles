@@ -263,13 +263,15 @@ setDT(most_imp_vars)
 most_imp_vars[, traits := sub("([A-Z]{2,})(\\.)(.+)", "\\3", traits)]
 
 lookup_traits <- readRDS("/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/lookup_traits.rds")
-lookup_traits <- rbind(
-  lookup_traits,
-  data.table(
-    trait = "bf_spherical",
-    trait_label = "spherical"
-  )
-)
+lookup_traits <- rbind(lookup_traits,
+                       data.table(
+                         trait = c("bf_spherical",
+                                   "volt_semi",
+                                   "locom_burrow"),
+                         trait_label = c("spherical",
+                                         "semivoltinism",
+                                         "burrowing")
+                       ))
 most_imp_vars[lookup_traits, trait_label := i.trait_label,
   on = c(traits = "trait")
 ]

@@ -36,7 +36,7 @@ KG_regions <- readGDAL(file.path(data_in, "Beck_KG_V1_present_0p083.tif"))
 # plot(KG_regions)
 
 # Checking KG data to have the same CRS as Conus data (WGS84)
-st_crs(KG_regions) # Yes, it also uses WGS84 as CRS
+# st_crs(KG_regions) # Yes, it also uses WGS84 as CRS
 
 # Turning KG_regions from a SpatialGridDataFrame to a Raster object 
 # to utilize raster functions
@@ -70,5 +70,6 @@ all.wgs.sf$Full_description[c(4,7)] <- "Temperate_nodryseason_hotsummer"
 
 # Exporting file
 setDT(all.wgs.sf)
+all.wgs.sf$Full_description %>% unique
 saveRDS(all.wgs.sf, file.path(data_in, "Conus_data_KoppenGeiger.rds"))
 fwrite(all.wgs.sf, file.path(data_in, "Conus_data_KoppenGeiger.csv"))

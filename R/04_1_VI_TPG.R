@@ -18,7 +18,6 @@ trait_EU <- readRDS(file = file.path(data_cache, "trait_EU_with_groups.rds"))
 trait_NOA <- readRDS(file = file.path(data_cache, "trait_NOA_with_groups.rds"))
 trait_NZ <- readRDS(file = file.path(data_cache, "trait_NZ_with_groups.rds"))
 trait_SA <- readRDS(file = file.path(data_cache, "trait_SA_with_groups.rds"))
-
 trait_dat <- list(
   "AUS" = trait_AUS,
   "EU" = trait_EU,
@@ -185,48 +184,73 @@ most_imp_vars[order(continents, -y),  five_most_imp := c(head(traits, n = 5), re
 most_imp_vars[order(continents, -y), five_least_imp := c(rep(NA, 17), tail(traits, n = 5)), 
               by = continents]
 
+# map colors for plotting
+most_imp_vars[, color := fcase(!is.na(five_most_imp),
+                               "mediumpurple1",
+                               is.na(five_most_imp),
+                               "gray70")]
+
+# grouping features
+most_imp_vars[, grouping_feature := sub("([a-z]{1,})(\\_)(.+)", "\\1", traits)]
+
+most_imp_vars[order(continents, -y), tail(.SD, n = 5), by = continents]
+
 # names for facets
 wrap_names <- c(
   "AUS" = "AUS",
   "EU" = "EUR",
   "NOA" = "NA",
   "NZ" = "NZ",
-  "SA" = "SA"
+  "SA" = "SA",
+  "resp" = "Resp.",
+  "size" = "Size",
+  "feed" = "Feed. m.",
+  "locom" = "Locom.",
+  "bf" = "Body f.",
+  "volt" = "Volt."
 )
-ggplot(most_imp_vars[order(continents, -y),],
-       aes(x = as.factor(traits),
-           y = y)) +
+ggplot(most_imp_vars[order(continents, -y), ],
+       aes(
+         x = as.factor(traits),
+         y = y,
+         fill = color
+       )) +
   geom_col() +
   geom_text(
     mapping = aes(
       x = as.factor(traits),
       y = y + 0.01,
-      label = five_most_imp
+      label = traits,
+      hjust = 0.1
     ),
-    size = 4.1,
-    nudge_x = 0.02
+    size = 4.1
   ) +
-  facet_grid(as.factor(continents), labeller = as_labeller(wrap_names)) +
+  facet_grid(grouping_feature~as.factor(continents),
+             labeller = as_labeller(wrap_names),
+             scales = "free"#,space = "free"
+             ) +
   labs(x = "",
        y = "Permutation importance") +
-  scale_color_d3() +
+  scale_fill_identity(guide = "none") +
+  lims(y = c(0., 0.19)) +
+  coord_flip() +
   theme_bw() +
   theme(
     axis.title = element_text(size = 16),
     axis.text.x = element_text(
       family = "Roboto Mono",
-      size = 14,
-      angle = 90
+      size = 14
     ),
-    axis.text.y = element_text(family = "Roboto Mono",
-                               size = 14),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
     legend.title = element_text(family = "Roboto Mono",
                                 size = 16),
     legend.text = element_text(family = "Roboto Mono",
                                size = 14),
     strip.text = element_text(family = "Roboto Mono",
                               size = 14),
-    legend.position = "none"
+    legend.position = "none", 
+    panel.grid = element_blank()
   )
 ggplot2::ggsave(
   filename = file.path(data_paper,

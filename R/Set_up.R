@@ -57,6 +57,10 @@ library(ade4)
 library(vegan)
 library(coRanking)
 library(ks)
+library(SIBER)
+library(geometry)
+library(shipunov)
+library(parallel)
 
 # Null models
 library(combinat)

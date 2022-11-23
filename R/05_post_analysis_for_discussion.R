@@ -7,7 +7,7 @@
 
 ### AUS trait syndromes that deviates from other trait spaces  ---- 
 Trait_AUS_agg <- readRDS(file.path(data_in, "Trait_AUS_agg.rds"))
-outside_taxa <- c(
+AUS_outside_taxa_lf <- melt(Trait_AUS_agg[family %in% c(
   "Veliidae",
   "Pleidae",
   "Hydrometridae",
@@ -19,17 +19,7 @@ outside_taxa <- c(
   "Synthemistidae",
   "Libellulidae",
   "Corduliidae"
-)
-
-# All TPGs and affinities  
-trait_CONT <- readRDS(file.path(data_cache, "trait_dat_grp_assig.rds"))
-trait_CONT[, id := paste0(continent, "_", family)]
-
-# Plotting
-AUS_outside_taxa_lf <-
-  melt(Trait_AUS_agg[family %in% outside_taxa,],
-       id.vars = c("family", "order"),
-       variable.name = "traits")
+), ], id.vars = c("family", "order"), variable.name = "traits")
 AUS_outside_taxa_lf[, grouping_feature := sub("([a-z]{1,})(\\_)(.+)", "\\1", traits)]
 
 ggplot(AUS_outside_taxa_lf, aes(
@@ -77,83 +67,101 @@ ggplot(AUS_outside_taxa_lf, aes(
   )
 
 # To which TPG do these taxa belong? 
-# AUS TPG 1,2 & 3
-unique(trait_CONT[continent == "AUS" & family %in% outside_taxa, group])
+trait_CONT <- readRDS(file.path(data_cache, "trait_dat_grp_assig.rds"))
+unique(trait_CONT[continent == "AUS" & family %in% unique(AUS_outside_taxa_lf$family), group])
 
-#### Australian trait data with oviposition ----
-Trait_AUS_ovip <- readRDS(file.path(data_in, "Trait_AUS_agg_ovip.rds"))
-AUS_lf <- Trait_AUS_ovip[family %in% outside_taxa, ] %>%
-  melt(
-    .,
-    id.vars = c("family", "order"),
-    variable.name = "trait",
-    value.name = "affinity"
-  ) 
-AUS_lf[, grouping_feature := sub("([a-z]{1,})(\\_)(.+)", "\\1", trait)]
+# Compare trait profiles from these families from AUS with 
+# the same families from other continents/regions
+trait_CONT[family %in% c("Veliidae",
+"Pleidae",
+"Hydrometridae",
+"Notonectidae",
+"Dytiscidae",
+"Gerridae",
+"Hygrobiidae",
+"Eustheniidae",
+"Synthemistidae",
+"Libellulidae",
+"Corduliidae"), ] %>% 
+  .[family == "Dytiscidae" & grouping_feature %in% c("feed", 
+                                                     "locom"), ] %>% 
+  ggplot(., aes(x = trait, 
+                y = affinity, 
+                color = continent)) +
+  geom_point() +
+  facet_wrap(~grouping_feature,
+             scales = "free")
 
-# Plot
-gf_names <- c(
-  "bf" = "Body form",
-  "feed" = "Feeding mode",
-  "locom" = "Locomotion",
-  "ovip" = "Oviposition",
-  "resp" = "Respiration",
-  "size" = "Size",
-  "volt" = "Voltinism"
-)
+# Calc diff. in affinities for each family
+outlier_families <- trait_CONT[family %in% c(
+  "Veliidae",
+  "Pleidae",
+  "Hydrometridae",
+  "Notonectidae",
+  "Dytiscidae",
+  "Gerridae",
+  "Hygrobiidae",
+  "Eustheniidae",
+  "Synthemistidae",
+  "Libellulidae",
+  "Corduliidae"
+), .(continent,
+     family,
+     order,
+     trait,
+     trait_label,
+     grouping_feature,
+     affinity)]
+outlier_families[, occr_continent := uniqueN(continent), by = "family"]
+outlier_families_diff <- outlier_families[occr_continent > 1, ] %>%
+  dcast(., ... ~ continent, value.var = "affinity") %>%
+  .[, .(
+    family,
+    order,
+    trait,
+    trait_label,
+    AUS_EU = round(AUS - EU, digits = 2),
+    AUS_NOA = round(AUS - NOA, digits = 2),
+    AUS_NZ = round(AUS - NZ, digits = 2),
+    AUS_SA = round(AUS - SA, digits = 2)
+  )] 
+outlier_families_diff[trait %in% c("resp_pls_spi",
+                                   "locom_swim",
+                                   "volt_semi"),] %>% 
+  melt(., id.vars = c("family", "order", "trait", "trait_label")) %>% 
+  .[value > 0, uniqueN(family), by = "trait"] 
 
-ggplot(AUS_lf[!trait %like% "dev.*", ], aes(x = as.factor(trait), y = affinity)) +
-  geom_jitter(width = 0.1, size = 2) +
-  geom_violin(alpha = 0.5) +
-  stat_summary(fun = "mean", col = "forestgreen") +
-  coord_flip() +
-  facet_wrap(grouping_feature ~ ., 
-             scales = "free",
-             labeller = as_labeller(gf_names)) +
-  labs(x = "Traits", 
-       y = "Affinity") +
-  theme_bw() +
-  theme(
-    axis.title = element_text(size = 16),
-    axis.text.x = element_text(
-      family = "Roboto Mono",
-      size = 14,
-      vjust = 1,
-      hjust = 1
-    ),
-    axis.text.y = element_text(family = "Roboto Mono",
-                               size = 14),
-    legend.title = element_text(family = "Roboto Mono",
-                                size = 16),
-    legend.text = element_text(family = "Roboto Mono",
-                               size = 14),
-    strip.text = element_text(family = "Roboto Mono",
-                              size = 14)
-  )
-ggsave(
-  filename = file.path(data_paper,
-                       "Graphs",
-                       "AUS_outside_taxa_trait_profiles.png"),
-  width = 37,
-  height = 25,
-  units = "cm"
-)
+# Table for SI
+outlier_families_diff[trait %in% c("resp_pls_spi",
+                                   "locom_swim",
+                                   "volt_semi"), ] %>%
+  fwrite(.,
+         file.path(data_paper, "Tables", "AUS_outlier_affinity_comparisons.csv"))
+
+# Highest trait affinity differences 
+melt(outlier_families_diff, id.vars = c("family", "order", "trait")) %>% 
+  .[value == 1, ]
+
+# Cumulative highest affinity differences
+melt(outlier_families_diff, id.vars = c("family", "order", "trait")) %>% 
+  .[, sum(value, na.rm = TRUE), by = c("variable", "trait")] %>% 
+  .[order(-V1, trait, variable)]
 
 ### Taxa in high density area ----
-
 # Characterize trait spaces in these areas
-# contour vectors contain families in the respective area of the trait space
 contour_25 <- readRDS(file.path(data_cache, "contour_25_TS.rds"))
 contour_50 <- readRDS(file.path(data_cache, "contour_50_TS.rds"))
-pcoa_scores <- readRDS(file.path(data_cache, "pcoa_scores.rds"))
+pcoa_scores[, family := sub("(.+)(\\_)(.+)", "\\3", id)]
 
 # N per continent (include total N)
-pcoa_scores[, family := sub("(.+)(\\_)(.+)", "\\3", id)]
 pcoa_scores[, total_N := .N, by = continent]
 unique(pcoa_scores[contour_25, .N/total_N, by = continent])
 unique(pcoa_scores[contour_50, .N/total_N, by = continent])
 
-# Continue with 50 % contour (i.e. smallest region with 50 % probability mass)
+# continue with 50 % contour (i.e. smallest region with 50 % probability mass)
+trait_CONT <- readRDS(file.path(data_cache, "trait_dat_grp_assig.rds"))
+trait_CONT[, id := paste0(continent, "_", family)]
+
 # Search and summarize trait profiles for the taxa in the 50 % probability occurrence area
 trait_CONT_50 <- trait_CONT[id %in% pcoa_scores[contour_50, id],]
 
@@ -165,7 +173,7 @@ unique(trait_CONT_50[, .(group, family), by = continent]) %>%
   .[, paste(family, collapse = ", "), by = .(continent, group)] %>%
   .[order(continent, group), ] %>% 
   fwrite(.,
-         file = file.path(data_paper, "Tables","TPGs_in_50_contour.csv"),
+         file = file.path(data_out, "TPGs_in_50_contour.csv"),
          sep = ";")
 
 # Then check defining traits for each group 
@@ -177,63 +185,13 @@ trait_CONT_50[affinity > 0.5,
 # Traits by which these families are mostly defined 
 trait_CONT_50[prop_taxa_high_aff >= 0.5, .N, by = trait] %>% 
   .[order(-N), ] 
-trait_CONT_50[trait %in% c("bf_cylindrical",
-                           "locom_crawl",
+trait_CONT_50[trait %in% c("ovip_aqu",
                            "volt_uni",
+                           "bf_cylindrical",
+                           "locom_crawl",
                            "resp_gil",
                            "size_small"), .N, by = .(continent, group)] %>% 
   .[order(continent, group)]
-
-
-trait_CONT_50[trait %in% c("bf_cylindrical",
-                           "locom_crawl",
-                           "volt_uni",
-                           "resp_gil",
-                           "size_small") & prop_taxa_high_aff >= 0.5 & continent == "AUS" & group == 8,]
-
-# Orders to which
-unique(trait_CONT_50[, .(uniqueN(order), order), by = continent]) %>% 
-  .[order(continent, order)]
-
-
-# ___________________________________________________________________________
-## TPGs with similar TCs ----
-# Differences are below our threshold?
-# ___________________________________________________________________________
-
-# Determine defining traits according to our criterion (at least 50 % of all taxa within a
-# given TPG with an affinity > 0.5)
-trait_CONT[, nr_families := uniqueN(family), by = .(continent, group)]
-trait_CONT[affinity > 0.5,
-           prop_taxa_high_aff := .N / nr_families,
-           by = .(continent, group, trait)]
-
-# AUS_TPG5 & AUS_TPG6
-trait_CONT[continent == "AUS" & group == 5 & !is.na(prop_taxa_high_aff), ] 
-trait_CONT[continent == "AUS" & group == 5 & affinity >= 0.5, .N, by = trait] %>% 
-  .[order(-N), ]
-
-trait_CONT[continent == "AUS" & group == 6 & !is.na(prop_taxa_high_aff), ] 
-trait_CONT[continent == "AUS" & group == 6 & affinity >= 0.5, .N, by = trait] %>% 
-  .[order(-N), ]
-trait_CONT[continent == "AUS" & group == 6 & !is.na(prop_taxa_high_aff) & trait == "volt_uni", ] 
-
-# NZ_TPG1 & NZ_TPG2 
-trait_CONT[continent == "NZ" & group == 1 & !is.na(prop_taxa_high_aff), ] 
-trait_CONT[continent == "NZ" & group == 1 & affinity >= 0.5, .N, by = trait] %>% 
-  .[order(-N), ]
-
-trait_CONT[continent == "NZ" & group == 2 & !is.na(prop_taxa_high_aff), ] 
-trait_CONT[continent == "NZ" & group == 2 & affinity >= 0.5, .N, by = trait] %>% 
-  .[order(-N), ]
-
-trait_CONT[continent == "EU" & group == 3 & !is.na(prop_taxa_high_aff), ]
-
-# NOA 7 & 8 
-trait_CONT[continent == "NOA" & group %in% c(7,8),] %>% 
-  .[prop_taxa_high_aff >= 0.3, ] %>% 
-  .[, .N, by = c("trait", "group")]
-
 
 # ___________________________________________________________________________
 ## Global pattern in TPGs ----
@@ -243,10 +201,11 @@ trait_CONT[continent == "NOA" & group %in% c(7,8),] %>%
 
 # life-history, mobility, morphology
 # voltinism, locomotion, body form
-trait_CONT[grouping_feature %in% c("bf", "size", "volt", "locom"), ]
+# trait_CONT[grouping_feature %in% c("bf", "size", "volt", "locom"), ]
 
-disting_traits <-
-  readRDS(file = file.path(data_cache, "def_traits.rds"))
+# disting_traits <-
+#   readRDS(file = file.path(data_cache, "def_traits.rds"))
+# disting_traits[order(continent, group), ]
 
 # check how certain grouping features are distributed across continents
 # disting_traits[grouping_feature %in% c("bf", "locom", "volt", "size"), ] %>%
@@ -264,88 +223,36 @@ disting_traits <-
 #   .[N >= 3,]
 
 
-# TPGs for the second global TPG combination
-# (respiration with plastron and spiracle & small size)
-# How many swimmers?
-# NOA 2 -> 20 %
-# EU 4 -> 25 %
-# EU 5 -> 44 %
-# NZ 4 -> 40 %
-# NZ 5 -> 20
-# NZ 6 -> 20
-# SA 1,2,3 -> none
-trait_CONT[continent == "EU" &
-             group == 5 & trait == "locom_swim",] %>%
-  .[order(trait, group), ]
-
-
-### Mean trait profiles per group ----
-# (maybe something that comes up in the review?)
-# trait_CONT[continent == "AUS" & group %in% c(7,8), mean(affinity), by = c("group", "trait")] %>% 
-#   .[order(group, -V1), ]
-
-
 # ___________________________________________________________________________
 ## Patterns in the aggregated trait datasets ----
 # ___________________________________________________________________________
-
-# Load data with oviposition information
-trait_ovip <- load_data(path = data_in,
-                        pattern = ".*ovip\\.rds")
-trait_ovip <- rbindlist(trait_ovip,
-          idcol = "continent",
-          fill = TRUE,
-          use.names = TRUE)
-trait_ovip[, continent := fcase(
-  continent == "Trait_AUS_agg_ovip.rds",
-  "AUS",
-  continent == "Trait_EU_agg_ovip.rds",
-  "EU",
-  continent == "Trait_NOA_agg_ovip.rds",
-  "NOA",
-  continent == "Trait_NZ_agg_ovip.rds",
-  "NZ",
-  continent == "Trait_SA_assigned_agg_ovip.rds",
-  "SA"
-)]
-trait_ovip <- trait_ovip[!order %in% c("Megaloptera", "Neuroptera"), ]
+trait_data_bind <- readRDS(file.path(data_cache,
+                                     "trait_data_ww_bind.rds"))
 
 # Calculate nr of taxa & prop of orders
-trait_ovip[, nr_taxa := .N, by = "continent"]
-trait_ovip[, nr_fam_per_order := .N, by = .(continent, order)]
-trait_ovip[, prop_order := nr_fam_per_order / nr_taxa]
-
+trait_data_bind[, nr_taxa := .N, by = "continent"]
+trait_data_bind[, nr_fam_per_order := .N, by = .(continent, order)]
+trait_data_bind[, prop_order := nr_fam_per_order / nr_taxa]
 
 ## Terrestrial oviposition ----
-trait_ovip[ovip_ter >= 0.5, .N, by = order]
-trait_ovip[ovip_ter >= 0.5, .(family, order, ovip_ter, ovip_aqu, ovip_ovo, .N), by = continent] %>%
-  fwrite(
-    .,
-    file = file.path(data_paper, "Tables", "families_oviposition_terrestrial.txt"),
-    sep = ";"
-  )
-trait_ovip[ovip_ter >= 0.5, .N, by = c("continent", "order")]
-
-# Australia 
-# also a lot of Odonates and Hemipterans
-trait_ovip[ovip_ter >= 0.5 & continent == "AUS", .N, by = order]
-
-# Although there are mainly dipterans & coleopterans in the NZ dataset
-# only few dipterans exhibit mainly terrestrial oviposition (i.e. > 0.5) 
-trait_data_bind[ovip_ter > 0 & continent == "NZ", ] %>% 
-  .[order %in% c("Coleoptera", "Diptera"), .N, by = order]
-trait_data_bind[ovip_ter >= 0.5 & continent == "NZ", ]
+# trait_data_bind[ovip_ter >= 0.5, .N, by = order]
+# trait_data_bind[ovip_ter >= 0.5, .N, by = continent]
+# trait_data_bind[ovip_ter >= 0.5, .N, by = c("continent", "order")]
+# trait_data_bind[ovip_ter >= 0.5 & continent == "EU", ]
+# 
+# # Australia 
+# # also a lot of Odonates and Hemipterans
+# trait_data_bind[ovip_ter >= 0.5 & continent == "AUS", .N, by = order]
+# 
+# # Although there are mainly dipterans & coleopterans in the NZ dataset
+# # only few dipterans exhibit mainly terrestrial oviposition (i.e. > 0.5) 
+# trait_data_bind[ovip_ter > 0 & continent == "NZ", ] %>% 
+#   .[order %in% c("Coleoptera", "Diptera"), .N, by = order]
+# trait_data_bind[ovip_ter >= 0.5 & continent == "NZ", ]
 
 # ___________________________________________________________________________
 ## Variability in traits ----
-# Most important:
-# AUS: bf_cylindrical|locom_crawl|ovip_ter|size_medium|size_small
-# EU: feed predator|locom_crawl|locom_swim|size_small|volt_semi
-# NOA: bf_cylindrical|bf_flattened|size_large|size_medium|size_small
-# NZ: feed_herbivore|feed_predator|ovip_aqu|ovip_ter|resp_teg
 # ___________________________________________________________________________
-
-# five most important
 trait_data_bind[, lapply(.SD, sd), 
                 .SDcols = patterns("bf|feed|resp|ovip|volt|size|locom"), 
                 by = continent] %>% 
@@ -355,7 +262,6 @@ trait_data_bind[, lapply(.SD, sd),
 # Variation in body size
 trait_data_bind[, lapply(.SD, mean), .SDcols = patterns("size"),
                 by = "continent"]
-
 trait_data_bind[, lapply(.SD, sd), .SDcols = patterns("size"),
                 by = "continent"]
 
@@ -364,7 +270,117 @@ ggplot(trait_data_bind) +
   facet_wrap( ~ continent) +
   theme_bw()
 
+# Compare variability in defining traits  
+trait_CONT[continent == "NZ" &
+             group %in% c(1, 2), .(continent, group, trait, grouping_feature, affinity)] %>%
+  .[trait == "feed_shredder", ]
+  dcast(., ... ~ group, value.var = "affinity")
 
+
+# Variability in defining traits ----
+# disting_traits <- readRDS(file.path(data_cache, "disting_traits_compl.rds"))
+
+## TPG-wise ----
+  
+### Considr all def. traits together ----
+# Coarse approach just using the defining traits as categories
+# dist_within_tpgs <- list() 
+# for(i in unique(disting_traits$continent)) {
+#     dat <- disting_traits[continent == i, .(tpg_id, trait)] %>%
+#       dcast(.,
+#             tpg_id ~ trait,
+#             value.var = "trait",
+#             fun.aggregate = fun_binary_length)
+#     setDF(dat)
+#     rownames(dat) <- dat$tpg_id
+#     dat$tpg_id <- NULL
+#     
+#     dat <- ktab.list.df(list(dat))
+#     dist_within_tpgs[[i]] <- as.vector(dist.ktab(dat, type = "D"))
+# }
+# dist_within_tpgs <- lapply(dist_within_tpgs, as.data.table) %>% 
+#   rbindlist(., idcol = "continent")
+# setnames(dist_within_tpgs, "V1", "dist_within_tpgs")
+# dist_within_tpgs[, `:=`(
+#   mean = mean(dist_within_tpgs),
+#   median = median(dist_within_tpgs),
+#   sd = sd(dist_within_tpgs)
+# ), by = "continent"]
+# 
+# # This plot with env. heterogeneity?
+# ggplot(dist_within_tpgs, aes(x = continent, y = dist_within_tpgs))+
+#   geom_violin()+
+#   geom_jitter(width = 0.05)+
+#   stat_summary(fun = "mean", colour = "red")+
+#   theme_bw()
+
+### Using mean trait profiles ----
+# TODO: Can these be done without the mean trait profile?
+trait_CONT <-
+    readRDS(file.path(data_cache, "trait_dat_grp_assig.rds"))
+trait_CONT_mtpgs <- trait_CONT[, .(continent,
+                                   mean_affinity = mean(affinity)),
+                                 by = c("continent" , "group", "trait")]
+trait_CONT_mtpgs <- trait_CONT_mtpgs[, .(continent,
+                                         group,
+                                         trait,
+                                         mean_affinity)] %>%
+  unique(.) %>%
+  dcast(., ... ~ trait, value.var = "mean_affinity")
+trait_CONT_mtpgs[, tpg_id := paste0(continent, "_", group)]
+normalize_by_rowSum(trait_CONT_mtpgs,
+                    non_trait_cols = c("continent",
+                                       "group",
+                                       "tpg_id"))
+  
+dist_within_tpgs_aff <- list()
+for (i in unique(trait_CONT_mtpgs$continent)) {
+  dat <- trait_CONT_mtpgs[continent == i,]
+  setDF(dat)
+  rownames(dat) <- dat$tpg_id
+  dat$tpg_id <- NULL
+  dat$group <- NULL
+  dat$continent <- NULL
+  
+  vec <- sub("\\_.*", "\\1", names(dat))
+  blocks <- rle(vec)$lengths
+  dat <- prep.fuzzy(dat, blocks)
+  dat <- ktab.list.df(list(dat))
+  dist_within_tpgs_aff[[i]] <-
+    as.vector(dist.ktab(dat, type = "F"))
+}
+dist_within_tpgs_aff <-
+  lapply(dist_within_tpgs_aff, as.data.table) %>%
+  rbindlist(., idcol = "continent")
+setnames(dist_within_tpgs_aff, "V1", "dist")
+dist_within_tpgs_aff[, `:=`(mean = mean(dist),
+                            median = median(dist),
+                            sd = sd(dist)), by = "continent"]
+
+# Plot, arranged accoridng to the number of Köppen-Geiger zones
+# TODO: Add a line/arrow in the plot indicating the direction of environmetnal heterogeneity
+# and the number of köppen-geiger climate zones
+dist_within_tpgs_aff[, continent := factor(continent,
+                                           levels = c("NZ", "SA", "AUS", "EU", "NOA"))]
+ggplot(dist_within_tpgs_aff, aes(x = continent, y = dist)) +
+  geom_violin() +
+  geom_jitter(width = 0.05) +
+  stat_summary(fun = "median", color = "red") +
+  theme_bw() +
+  theme(
+    axis.title = element_text(size = 16),
+    axis.text.x = element_text(family = "Roboto Mono",
+                               size = 14),
+    axis.text.y = element_text(family = "Roboto Mono",
+                               size = 14),
+    legend.title = element_text(family = "Roboto Mono",
+                                size = 16),
+    legend.text = element_text(family = "Roboto Mono",
+                               size = 14),
+    strip.text = element_text(family = "Roboto Mono",
+                              size = 14)
+  )
+  
 # ___________________________________________________________________________
 ## Comparison to non-aggregated data ----
 # ___________________________________________________________________________
@@ -582,13 +598,13 @@ dend_label_NZ <- hc_NZ %>%
 gap <- clusGap(
   x = as.matrix(dist_mat_NZ),
   FUN = mycluster_hc,
-  K.max = 60,
+  K.max = 30,
   B = 500
 )
 optimal_nog_NZ <- maxSE(gap$Tab[, "gap"],
                      gap$Tab[, "SE.sim"],
                      method = "Tibs2001SEmax")
-# plot(gap)
+plot(gap)
 
 # What kind of strategies could be found in the NZ trait dataset?
 # dendrogram plot
@@ -600,14 +616,15 @@ dendro_NZ <- fun_dendrog_pl(
 plot(dendro_NZ, horiz = TRUE)
 
 # trait profile groups for all continents
+# cut at 5 revealed 14 groups
 tpg_NZ <- data.table(
   taxa = names(cutree(
     dendro_NZ,
-    k = 36,
+    h = 5,
     order_clusters_as_data = FALSE
   )),
   group = cutree(dendro_NZ,
-                 k = 36,
+                 h = 6,
                  order_clusters_as_data = FALSE)
 )
 
@@ -645,11 +662,8 @@ def_traits_NZ <- unique(Trait_NZ_lf[prop_taxa_high_aff >= 0.5,] %>%
 
 # re-arrange for better representation
 def_traits_NZ[, grouping_feature := sub("([a-z]{1,})(\\_)(.+)", "\\1", trait)]
-# saveRDS(def_traits_NZ,
-#         file = file.path(data_cache, "NZ_complete_clustering.rds"))
-# def_traits_NZ <- readRDS(file.path(data_cache, "NZ_complete_clustering.rds"))
-# new defining traits: 
-# shredder, filterer, gatherer, large size, flattened body form, semivoltinism, and sessil
+saveRDS(def_traits_NZ,
+        file = file.path(data_cache, "NZ_complete_clustering.rds"))
 def_traits_NZ %>% arrange(factor(
   grouping_feature,
   levels = c(
@@ -665,5 +679,7 @@ def_traits_NZ %>% arrange(factor(
     by = group] %>% 
   .[order(group), ]
 
-
-def_traits_NZ[group == 24, ]
+# Differences defining traits aggregated & non-aggregated NZ trait dataset
+def_traits_NZ <- readRDS(file.path(data_cache, "NZ_complete_clustering.rds"))
+disting_traits_compl <- readRDS(file.path(data_cache, "disting_traits_compl.rds"))
+setdiff(def_traits_NZ$trait, disting_traits_compl[continent == "NZ", ]$trait)
