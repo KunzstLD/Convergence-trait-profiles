@@ -15,7 +15,10 @@ trait_data_ww <- lapply(
     y[, c(
       "dev_holometabol",
       "dev_hemimetabol",
-      "feed_parasite"
+      "feed_parasite",
+      "ovip_aqu",
+      "ovip_ter",
+      "ovip_ovo"
     ) := NULL]
   }
 )

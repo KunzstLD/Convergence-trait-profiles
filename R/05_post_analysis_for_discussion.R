@@ -333,7 +333,7 @@ normalize_by_rowSum(trait_CONT_mtpgs,
                                        "group",
                                        "tpg_id"))
   
-dist_within_tpgs_aff <- list()
+dist_between_tpgs_aff <- list()
 for (i in unique(trait_CONT_mtpgs$continent)) {
   dat <- trait_CONT_mtpgs[continent == i,]
   setDF(dat)
@@ -346,26 +346,30 @@ for (i in unique(trait_CONT_mtpgs$continent)) {
   blocks <- rle(vec)$lengths
   dat <- prep.fuzzy(dat, blocks)
   dat <- ktab.list.df(list(dat))
-  dist_within_tpgs_aff[[i]] <-
+  dist_between_tpgs_aff[[i]] <-
     as.vector(dist.ktab(dat, type = "F"))
 }
-dist_within_tpgs_aff <-
-  lapply(dist_within_tpgs_aff, as.data.table) %>%
+dist_between_tpgs_aff <-
+  lapply(dist_between_tpgs_aff, as.data.table) %>%
   rbindlist(., idcol = "continent")
-setnames(dist_within_tpgs_aff, "V1", "dist")
-dist_within_tpgs_aff[, `:=`(mean = mean(dist),
+setnames(dist_between_tpgs_aff, "V1", "dist")
+dist_between_tpgs_aff[, `:=`(mean = mean(dist),
                             median = median(dist),
                             sd = sd(dist)), by = "continent"]
 
-# Plot, arranged accoridng to the number of Köppen-Geiger zones
-# TODO: Add a line/arrow in the plot indicating the direction of environmetnal heterogeneity
-# and the number of köppen-geiger climate zones
-dist_within_tpgs_aff[, continent := factor(continent,
+# Plot, arranged according to the number of Köppen-Geiger zones
+# TODO: Add a line/arrow in the plot indicating the direction of environmental heterogeneity
+# and the number of Köppen-Geiger climate zones
+dist_between_tpgs_aff[, continent := factor(continent,
                                            levels = c("NZ", "SA", "AUS", "EU", "NOA"))]
-ggplot(dist_within_tpgs_aff, aes(x = continent, y = dist)) +
+
+ggplot(dist_between_tpgs_aff, aes(x = continent, y = dist)) +
   geom_violin() +
   geom_jitter(width = 0.05) +
-  stat_summary(fun = "median", color = "red") +
+  stat_summary(fun = "mean", color = "red") +
+  labs(x = "Continent or region",
+       y = "Distance between mean trait profiles of TPGs") +
+  scale_x_discrete(labels = c("NZ", "SA", "AUS", "EUR", "NA")) +
   theme_bw() +
   theme(
     axis.title = element_text(size = 16),
@@ -379,13 +383,89 @@ ggplot(dist_within_tpgs_aff, aes(x = continent, y = dist)) +
                                size = 14),
     strip.text = element_text(family = "Roboto Mono",
                               size = 14)
+  ) +
+  annotate(
+    "segment",
+    x = 0.5,
+    y = 0,
+    xend = 5.5,
+    yend = 0,
+    size = 5.5,
+    linejoin = "mitre",
+    arrow = arrow(type = "closed", length = unit(0.01, "npc"))
+  ) +
+  annotate(
+    "text",
+    x = 3,
+    y = 0,
+    label = "Environmental heterogeneity",
+    color = "white",
+    size = 4,
+    fontface = "bold"
+  ) +
+  annotate(
+    "text",
+    x = 1,
+    y = 0.08,
+    label = "KG-zones: 9",
+    color = "black",
+    size = 4,
+    fontface = "bold"
+  ) +
+  annotate(
+    "text",
+    x = 2,
+    y = 0.08,
+    label = "KG-zones: 14",
+    color = "black",
+    size = 4,
+    fontface = "bold"
+  ) +
+  annotate(
+    "text",
+    x = 3,
+    y = 0.08,
+    label = "KG-zones: 17",
+    color = "black",
+    size = 4,
+    fontface = "bold"
+  ) +
+  annotate(
+    "text",
+    x = 4,
+    y = 0.08,
+    label = "KG-zones: 18",
+    color = "black",
+    size = 4,
+    fontface = "bold"
+  ) +
+  annotate(
+    "text",
+    x = 5,
+    y = 0.08,
+    label = "KG-zones: 22",
+    color = "black",
+    size = 4,
+    fontface = "bold"
   )
-  
+ggsave(
+  filename = file.path(
+    data_paper,
+    "Graphs",
+    "Distance_between_tpgs.png"
+  ),
+  width = 35,
+  height = 20,
+  units = "cm"
+)
+
+# range
+dist_between_tpgs_aff[, range(dist), by = "continent"]
+
 # ___________________________________________________________________________
 ## Comparison to non-aggregated data ----
 # ___________________________________________________________________________
 # go back to the non-aggregate trait datasets to investigate certain patterns further
-
 trait_non_agg <- load_data(pattern = ".*\\.rds",
                            path = file.path(data_in, "Not_aggregated"))
 trait_non_agg <- rbindlist(trait_non_agg, idcol = "dataset", fill = TRUE)
@@ -435,6 +515,23 @@ trait_non_agg[order %in% aq_insects &
 # Overall: families with taxa with ovip_ter >= 0.5
 # families with taxa ovip_ter >= 0.5: AUS 43, NZ 11, EU, 17, NOA 12
 trait_non_agg[ovip_ter >= 0.5, uniqueN(family), by = dataset]
+trait_non_agg[ovip_ter >= 0.5, uniqueN(family), by = dataset]
+
+trait_non_agg[ovip_ter >= 0.5 &
+                dataset == "Trait_AUS_harmonized.rds",] %>%
+  .[family %in% c(
+    "Veliidae",
+    "Pleidae",
+    "Hydrometridae",
+    "Notonectidae",
+    "Dytiscidae",
+    "Gerridae",
+    "Hygrobiidae",
+    "Eustheniidae",
+    "Synthemistidae",
+    "Libellulidae",
+    "Corduliidae"
+  ), family] %>% unique
 
 # Families of Diptera & Coleoptera order with taxa with ovip_ter >= 0.5
 trait_non_agg[ovip_ter >= 0.5 &
@@ -456,6 +553,8 @@ trait_non_agg[order %in% aq_insects, uniqueN(family),
 
 # Overall
 # Some orders not represent in aggregated trait datasets
+trait_data_bind <- readRDS(file.path(data_cache,
+                                     "trait_data_ww_bind.rds"))
 trait_data_bind[, uniqueN(family), by = continent]
 trait_non_agg[order %in% aq_insects, uniqueN(family), by = dataset]
 

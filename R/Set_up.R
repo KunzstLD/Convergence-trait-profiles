@@ -24,6 +24,7 @@ library(Hmisc)
 library(zeallot)
 library(stringdist)
 library(tidystringdist)
+library(readxl)
 
 # Plotting
 library(ggplot2)

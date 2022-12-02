@@ -27,9 +27,11 @@ Trait_EU <- Trait_EU[, .SD,
   ),]
 Trait_EU[, taxa := coalesce(species, genus, family, order)]
 Trait_EU[, feed_parasite := NULL]
+Trait_EU <- Trait_EU[!duplicated(taxa), ]
 
 # Search those families that could be used for TPG delineation
-Trait_EU <- Trait_EU[family %in% unique(trait_CONT[continent == "EU", family]), ]
+# Trait_EU <- Trait_EU[family %in% unique(trait_CONT[continent == "EU", family]), ]
+# na.omit(Trait_EU[, .SD, .SDcols = as.character(trait_names[1:18])])
 Trait_EU_lf <- melt(
   Trait_EU,
   id.vars = c("species",
@@ -132,8 +134,6 @@ Trait_AUS_lf <- melt(
 
 
 ## NZ ----
-trait_non_agg <- load_data(pattern = ".*\\.rds",
-                           path = file.path(data_in, "Not_aggregated"))
 Trait_NZ <- trait_non_agg$Trait_NZ_pp_harmonized.rds
 Trait_NZ <- Trait_NZ[order %in% c(
   "Ephemeroptera",
@@ -191,10 +191,6 @@ Trait_NZ_lf <- melt(
   variable.name = "trait"
 )
 
-
-
-
-
 # test code with family dytiscidae (subset Trait_NZ_lf to dytisicidae before)
 # Take family from NZ
 # Trait_NZ[family == "Dytiscidae", ]
@@ -219,7 +215,60 @@ Trait_NZ_lf <- melt(
 # ggplot(test_dytiscidae, aes(x = family, y = dist_to_mean_tp))+
 #          geom_boxplot()
 
+## SA ----
+# TODO: like AUS, use SA family assigned traits 
+# Trait_SA <- trait_non_agg$Trait_SA_pp_harmonised.rds
+# Trait_SA[order %in% c(
+#   "Ephemeroptera",
+#   "Hemiptera",
+#   "Odonata",
+#   "Trichoptera",
+#   "Coleoptera",
+#   "Plecoptera",
+#   "Diptera"
+# ), ]
+# Trait_SA[, c("ovip_aqu",
+#              "ovip_ter",
+#              "ovip_ovo",
+#              "subfamily") := NULL]
+# 
+# SA_assignment_FA <- read_xls(file.path(data_in,
+#                                        "SA_aggregated_missing_FA.xls"))
+# setDT(SA_assignment_FA)
+# SA_assignment_FA <- SA_assignment_FA[, .SD,
+#                                      .SDcols = names(SA_assignment_FA) %like%
+#                                        "locom|feed|resp|volt|size|bf|family|order"]
+# SA_assignment_FA <- na.omit(SA_assignment_FA)
+# normalize_by_rowSum(
+#   x = SA_assignment_FA,
+#   non_trait_cols = c(
+#     "order",
+#     "family"
+#   )
+# )
+# SA_assignment_FA[, taxon := coalesce(family, order)]
+# Trait_SA <- rbind(Trait_SA[!(is.na(species) &
+#                                is.na(genus) &
+#                                family %in% SA_assignment_FA$family),],
+#                   SA_assignment_FA, fill = TRUE)
+# setnames(Trait_SA, "taxon", "taxa")
+# melt(
+#   Trait_SA,
+#   id.vars = c("species",
+#               "genus",
+#               "family",
+#               "order",
+#               "taxa",
+#               "unique_ID"),
+#   value.name = "affinity",
+#   variable.name = "trait"
+# )
+# # Body shape others is a problem, maybe don't use SA?
+# str(Trait_SA)
+# Trait_SA[`Body shape_Others - specify` > 0, order]
 
-       
-       
-       
+
+
+
+
+

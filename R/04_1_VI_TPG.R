@@ -29,7 +29,7 @@ trait_dat <- list(
 # Check distribution within groups (family richness)
 obs_group <- lapply(trait_dat, function(y) y[, .N, by = group])
 obs_group <- rbindlist(obs_group, idcol = "continent")  
-obs_group[, group := factor(group, levels = c(1:10))]
+obs_group[, group := factor(group, levels = c(1:12))]
 ggplot(obs_group, aes(x = group, y = N)) +
   geom_pointrange(aes(ymin = 0, ymax = N)) +
   facet_wrap(as.factor(continent) ~., 
@@ -99,7 +99,7 @@ for(region in names(trait_dat_cp)) {
   #          .[order(group, fold), ])
   
   # Performance measure for resampling (multivariate Brier score)
-  mbrier_metric <- msr("classif.mbrier")
+  mbrier_metric <- mlr3::msr("classif.mbrier")
   
   # When to terminate tuning
   evals20 <- trm("evals", n_evals = 100)
@@ -121,11 +121,11 @@ for(region in names(trait_dat_cp)) {
   rf_learner$param_set$values <- instance$result_learner_param_vals
   rf_learner$train(task_train)
   pred_train <- rf_learner$predict_newdata(newdata = train)
-  scores_train[[region]] <- pred_train$score(msr("classif.mbrier"))
+  scores_train[[region]] <- pred_train$score(mlr3::msr("classif.mbrier"))
   
   # Check model on test dataset
   pred_test <- rf_learner$predict_newdata(newdata = test)
-  scores_test[[region]] <- pred_test$score(msr("classif.mbrier"))
+  scores_test[[region]] <- pred_test$score(mlr3::msr("classif.mbrier"))
   
   # Retrieve most important variables
   most_imp_vars[[region]] <- rf_learner$importance()

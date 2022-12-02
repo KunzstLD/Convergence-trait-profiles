@@ -7,7 +7,6 @@
 
 # Read in trait data with group assignment
 trait_CONT <- readRDS(file.path(data_cache, "trait_dat_grp_assig.rds"))
-# trait_CONT[, uniqueN(group), by = "continent"]
 
 # __________________________________________________________________________________________________
 # TPGs ----
@@ -52,7 +51,9 @@ cluster_occ <-
                 "7",
                 "8",
                 "9",
-                "10")] %>%
+                "10",
+                "11",
+                "12")] %>%
   .[, .(continent, order, occ_in_cluster)] 
 # cluster_occ[order %in% c("Ephemeroptera", "Trichoptera", "Diptera", "Plecoptera"), ]
 cluster_occ[order(-occ_in_cluster), ]
@@ -81,8 +82,8 @@ prop_order_tpg <- unique(trait_CONT_wf[, .(continent, group, order, prop_order, 
 setnames(prop_order_tpg,
          c("continent", "group", "n_families_gr"),
          c("Continent", "TPG", "Nr. families TPG"))
-# fwrite(prop_order_tpg, 
-#        file.path(data_paper, "Tables", "prop_order_tpg.csv"), 
+# fwrite(prop_order_tpg,
+#        file.path(data_paper, "Tables", "prop_order_tpg.csv"),
 #        sep = ";")
 
 # Distribution of orders
@@ -142,7 +143,7 @@ disting_traits_compl[, .(
 # saveRDS(disting_traits_compl, file.path(data_cache, "disting_traits_compl.rds"))
 
 # Which traits did not define any TPG?
-# volt_semi, locom_burrow, bf_spherical
+# locom_burrow, bf_spherical
 setdiff(trait_CONT$trait, disting_traits_compl$trait)
 
 ### Overview ----
@@ -168,13 +169,14 @@ lookup_traits <- data.table(
     "plastron and spiracle",
     "swimming",
     "bi/multivoltinism",
-    "tegument",
-    "gatherer",
-    "flattened",
     "shredder",
+    "tegument",
+    "sessil",
+    "semivoltinism",
+    "flattened",
     "streamlined",
     "filterer",
-    "sessil"
+    "gatherer"
   ))
 # saveRDS(lookup_traits,
 #   file = "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/lookup_traits.rds"
@@ -255,21 +257,16 @@ tab_fmatch_tc[order(lv_dist), ]
 # - Crawling, clyindrical, gills, univoltinism  
 # occurs as combination on all continents
 # other traits that occur often with these TPGs: medium and small size, predator  
+
+# 11 times (out of 39)
+disting_traits[defining_tc %like% "crawling" &
+                 defining_tc %like% "cylindrical" &
+                 defining_tc %like% "univoltinism", ] 
+
 # 10 times
 disting_traits[defining_tc %like% "crawling" &
                  defining_tc %like% "cylindrical" &
-                 defining_tc %like% "gills",] 
-
-# 13 times (out of 42)
-disting_traits[defining_tc %like% "crawling" &
-                 defining_tc %like% "cylindrical" &
-                 defining_tc %like% "univoltinism",] 
-
-# Also on every continent/region
-disting_traits[defining_tc %like% "crawling" &
-                 defining_tc %like% "cylindrical" &
-                 defining_tc %like% "gills" & 
-                 defining_tc %like% "univoltinism",] 
+                 defining_tc %like% "small",] 
 
 global_pat_id <-
   disting_traits[defining_tc %like% "crawling" &
@@ -308,31 +305,40 @@ global_pat_id2 <-
 
 ### On 4 continents/regions ----
 
+# - crawling, cylindrical, gills, univoltinism
+disting_traits[defining_tc %like% "crawling" &
+                 defining_tc %like% "cylindrical" &
+                 defining_tc %like% "gills" & 
+                 defining_tc %like% "univoltinism",] 
+
 # - herbivore, cylindrical, small
 disting_traits[defining_tc %like% "herbivore" &
                  defining_tc %like% "cylindrical" & 
                  defining_tc %like% "small", ]
-
-# - crawling, medium, gills
-disting_traits[defining_tc %like% "crawling" & defining_tc %like% "medium" & 
-                 defining_tc %like% "gills", ] # %>% 
-  # .[!tpg_id %in% c(global_pat_id, global_pat_id2), ]
 
 ### On 3 regions/continents ----
 
 # crawling, cylindrical, predator, tegument, univoltinism
 disting_traits[defining_tc %like% "tegument", ]
 
+# - crawling, medium, gills
+disting_traits[defining_tc %like% "crawling" & defining_tc %like% "medium" & 
+                 defining_tc %like% "gills", ] # %>% 
+# .[!tpg_id %in% c(global_pat_id, global_pat_id2), ]
+
 # Bi/multivoltinism
 # 3 TPGs AUS, NOA, NZ
 # with plastron and spiracle, small
 disting_traits[defining_tc %like% "bi/multivoltinism", ] # %>%
 #   .[!(tpg_id %in% global_pat_id | tpg_id %in% global_pat_id2), ]
+trait_CONT[continent == "NOA" & group == 2, ] %>% 
+  .[affinity > 0.5, ]
 
 # # Crawling & large, mostly predators
 # disting_traits[defining_tc %like% "large", ]
 # trait_CONT[continent == "SA" & group == 5 & trait == "feed_predator",]
-# 
+disting_traits[defining_tc %like% "large", ] 
+
 # ### Between Australia, South Africa, and New Zealand ----
 # Specific TPGs similar in AUS, NZ & SA (more recent geological history)
 # Not really something specific
@@ -342,12 +348,6 @@ disting_traits[defining_tc %like% "bi/multivoltinism", ] # %>%
 
 ### On 2 regions/continents ----
 
-# Gatherer
-## gills, crawling, small
-## EU & SA
-disting_traits[defining_tc %like% "gatherer", ] %>%
-  .[!tpg_id %in% c(global_pat_id, global_pat_id2), ]
- 
 # - Shredder in NOA & SA
 # # with crawling, cylindrical, small, univoltinism
 disting_traits[defining_tc %like% "shredder", ]
@@ -362,11 +362,12 @@ disting_traits[defining_tc %like% "filterer", ] #%>%
 disting_traits[defining_tc %like% "sessil", ] # %>%
 #   .[!(tpg_id %in% global_pat_id | tpg_id %in% global_pat_id2), ]
 
-# - large
-disting_traits[defining_tc %like% "large", ]
- 
+
 #### Traits that only occur in TPG in one continent/region & special TPGs ----
-# Only streamlined 
+## SA
+disting_traits[defining_tc %like% "gatherer", ] %>%
+  .[!tpg_id %in% c(global_pat_id, global_pat_id2), ]
+
 disting_traits_compl[, .N, by = c("trait", "continent")] %>% 
   .[order(trait, N), ]
 
@@ -375,6 +376,7 @@ disting_traits_compl[, .N, by = c("trait", "continent")] %>%
 disting_traits[defining_tc %like% "streamlined", ] #%>%
 #   .[!(tpg_id %in% global_pat_id | tpg_id %in% global_pat_id2), ]
 
-
+# Semivoltinism only in EUR
+disting_traits[defining_tc %like% "semivoltinism", ]
 
 

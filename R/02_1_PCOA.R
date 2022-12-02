@@ -146,7 +146,7 @@ ggsave(
 #  )
 comb_perm <- adonis2(comb_dist ~ continent_names)
 comb_perm
-# 4.95 % of the total variance (in the distance matrix)
+# 6.7 % of the total variance (in the distance matrix)
 # is explained by the factor continent
 
 # Assumptions of PERMANOVA do not hold

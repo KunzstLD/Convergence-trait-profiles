@@ -761,5 +761,12 @@ calc_rf_tpgs <- function(x,
   list("most_imp_vars" = most_imp_vars)
 } 
 
+# Functions for distance calculations ----
+## Overlap index manly ----
+fun_overlap_ind <-
+  function(p, q) {
+    1 - sum(p * q) / sqrt(sum(p * p)) / sqrt(sum(q * q))
+  }
+
 
 

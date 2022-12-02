@@ -255,7 +255,10 @@ grouping_feature_names <- c(
   "6" = "TPG 6",
   "7" = "TPG 7",
   "8" = "TPG 8",
-  "9" = "TPG 9"
+  "9" = "TPG 9",
+  "10" = "TPG 10",
+  "11" = "TPG 11",
+  "12" = "TPG 12"
 )
 
 # plot
