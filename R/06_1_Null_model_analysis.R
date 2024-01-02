@@ -27,7 +27,6 @@ real_ovl_non_symm[, type := "real"]
 ovl_results_non_symm <- rbind(ovl_results_non_symm,
                               real_ovl_non_symm)
 
-
 # Calculate p-value:
 # Calculate number of test statistics as or more extreme than our initial ("real") test statistics 
 # and divide by the total number of test-statistics calculated.
@@ -44,8 +43,11 @@ for(i in unique(ovl_results_non_symm$continent)) {
 p_val_overlap <- cbind(p_val_overlap) %>% 
   as.data.table(., keep.rownames = TRUE)
 setnames(p_val_overlap, "rn", "continent")
-p_val_overlap[, `:=`(y = c(0.725, 0.825, 0.76, 0.805, 0.87),
+p_val_overlap[, `:=`(y = c(0.725, 0.8, 0.76, 0.805, 0.87),
                      x = rep(15, 5))]
+
+# means
+ovl_results_non_symm[, mean(overlap), by = c("continent", "type")]
 
 # plot
 wrap_names <- c(
@@ -53,7 +55,7 @@ wrap_names <- c(
   "EU" = "EUR",
   "NOA" = "NA",
   "NZ" = "NZ",
-  "SA" = "SA"
+  "SA" = "SAf"
 )
 ggplot(ovl_results_non_symm, aes(y = overlap)) +
   geom_density(data = ~ .x[type == "simulated",]) +
@@ -258,8 +260,9 @@ p_val_explvar <- expl_var[type == "simulated" &
            var_constr >= expl_var[type == "real", var_constr], .N]/
   expl_var[type == "simulated", .N]
 p_val_explvar <- as.data.table(p_val_explvar)
-p_val_explvar[, `:=`(y = 0.16,
-                     x = 40)]
+p_val_explvar[, `:=`(y = 0.157,
+                     x = 40, 
+                     p_val_label = "0.000")]
 
 # Plot
 ggplot(expl_var, aes(y = var_constr)) +
@@ -274,7 +277,7 @@ ggplot(expl_var, aes(y = var_constr)) +
   geom_text(p_val_explvar, mapping = aes(
     y = y,
     x = x,
-    label = paste("p-value: ", p_val_explvar)
+    label = paste("p-value: ", p_val_label)
   )) +
   labs(x = "Density",
        y = "Explained variances of continents and regions") +

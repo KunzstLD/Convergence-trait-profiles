@@ -73,10 +73,8 @@ for(region in names(hc_output_ww)) {
 }
 
 ## Dendrogramm ----
-# TODO: Dendrogram with order as labels
-# TODO: A few family names are too long, 
-# needs visual improvement
 dendrograms <- list()
+hc_output_ww[["SA"]]$labels_dendrogram[hc_output_ww[["SA"]]$labels_dendrogram == "Thaumeliidae"] <- "Thaumaleidae"
 for (i in names(hc_output_ww)) {
   plot <- fun_dendrog_pl(
     hc = hc_output_ww[[i]]$hc_wardD,
@@ -86,22 +84,36 @@ for (i in names(hc_output_ww)) {
   dendrograms[[i]] <- plot
 }
 
+
 # save dendrogram plots
 for (i in names(dendrograms)) {
   png(
     file = file.path(data_paper,
                      "Graphs",
-                     paste0(
-                       "Dendrogram_", i, ".png"
-                     )),
+                     paste0("Dendrogram_", i, ".png")),
     width = 1100,
     height = 1300,
     res = 100
   )
-  plot(dendrograms[[i]], horiz = TRUE)
+  plot(dendrograms[[i]],
+       main = paste(
+         "Dendrogram",
+         fcase(
+           i == "AUS",
+           "AUS",
+           i == "EU",
+           "EUR",
+           i == "NOA",
+           "NA",
+           i == "NZ",
+           "NZ",
+           i == "SA",
+           "SAf"
+         )
+       ),
+       horiz = TRUE)
   dev.off()
 }
-
 ## Ordination plots with superimposed single linkage clustering ----
 for(i in names(hc_output_ww)) {
   png(
@@ -393,7 +405,7 @@ ggplot2::ggsave(
 
 
 # _______________________________________________________
-## SA ----
+## SAf ----
 # _______________________________________________________
 trait_SA <- trait_data_bind[continent == "SA", ]
 trait_SA[trait_profile_groups$SA, group := i.group,
@@ -441,7 +453,7 @@ grouping_feature_names <- c(
 
 # Plot TPGs and expressed traits
 fun_heatmap_single_cont(data = trait_SA_lf)+
-  ggtitle("TPGs SA")
+  ggtitle("TPGs SAf")
 ggplot2::ggsave(
   filename = file.path(data_paper,
                        "Graphs", 

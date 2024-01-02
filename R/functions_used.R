@@ -339,14 +339,15 @@ WdS.test <- function(dm, f, nrep = 999, strata = NULL) {
 fun_dendrog_pl <- function(hc,
                            optimal_nog,
                            labels,
-                           hang_height = 0.001) {
+                           hang_height = 0.001, 
+                           main) {
   hc %>% 
     as.dendrogram() %>%
     color_branches(k = optimal_nog) %>%
     hang.dendrogram(hang_height = hang_height) %>%
     set("labels_cex", 0.7) %>%
     dendextend::ladderize() %>%
-    set("labels", labels) 
+    set("labels", labels)
 }
 
 ##### Heatmap plot ####

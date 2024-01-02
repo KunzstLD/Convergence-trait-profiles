@@ -6,6 +6,7 @@
 
 # Load trait data
 trait_data_ww <- load_data(pattern = ".*agg\\.rds", path = data_in)
+trait_data_ww$Trait_AUS_agg.rds$order %>% unique
 
 # Rm dev for now
 # Looking at the trait distributions revealed that in all databases no parasites were present
@@ -75,6 +76,9 @@ lapply(
 
 # Bind trait data
 trait_data_bind <- rbindlist(trait_data_ww, idcol = "continent")
+
+# Resolve a naming issue
+trait_data_bind[continent == "SA" & family %like% "Thaum.*", family := "Thaumaleidae"]
 saveRDS(trait_data_bind,
   file = file.path(
     data_cache,

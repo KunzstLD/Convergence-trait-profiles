@@ -16,22 +16,22 @@ data_paper <- "./Paper"
 
 # ---- Libraries -----------------------------------------------------------------------------------
 
-# Data cleaning and data manipulation
+# Data cleaning, data manipulation, basic statistics
 library(foreign)
 library(dplyr)
 library(data.table)
 library(Hmisc)
 library(zeallot)
 library(stringdist)
-library(tidystringdist)
 library(readxl)
+library(statmod)
 
 # Plotting
 library(ggplot2)
 library(ggsci)
 library(dendextend) # for handling & plotting dendrograms
 library(patchwork)
-library(adegraphics)
+# library(adegraphics)
 library(plotly)
 library(ggrepel)
 

@@ -126,11 +126,11 @@ disting_traits <-
 # Dataset with traits and prop of taxa with high aff
 disting_traits_compl <- copy(disting_traits)
 disting_traits_compl[, tpg_id := paste0(continent, "_", group)]
-disting_traits_compl[, .N, by = trait] %>% 
-.[order(-N), ]
+# disting_traits_compl[, .N, by = trait] %>% 
+# .[order(-N), ]
 
 # Calculate nr of traits per tpg for upcoming comparisons
-# Overall, TPGs have between 2 and 7 defining traits
+# Overall, TPGs have between 3 and 7 defining traits
 disting_traits_compl[, nr_traits_group := .N, 
                by = .(continent, group)]
 unique(disting_traits_compl[, nr_traits_group,
@@ -148,7 +148,7 @@ setdiff(trait_CONT$trait, disting_traits_compl$trait)
 
 ### Overview ----
 
-# Dataset with defining trait combinations (TC)
+# Dataset with defining traits combined in one column
 disting_traits[, def_traits := paste(trait, collapse = ", "),
   by = c("continent", "group")
 ]
@@ -165,7 +165,7 @@ lookup_traits <- data.table(
     "univoltinism",
     "small",
     "herbivore",
-    "medium", 
+    "medium",
     "plastron and spiracle",
     "swimming",
     "bi/multivoltinism",
@@ -177,13 +177,66 @@ lookup_traits <- data.table(
     "streamlined",
     "filterer",
     "gatherer"
-  ))
+  ),
+  abbrev = c(
+    "large",
+    "crawling",
+    "predator",
+    "cylindrical",
+    "gills",
+    "univol",
+    "small",
+    "herbivore",
+    "medium",
+    "plas_spira",
+    "swimming",
+    "bi/multivol",
+    "shredder",
+    "tegument",
+    "sessil",
+    "semivol",
+    "flattened",
+    "streaml",
+    "filterer",
+    "gatherer"
+  )
+)
 # saveRDS(lookup_traits,
 #   file = "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/lookup_traits.rds"
 # )
-disting_traits[lookup_traits, 
-           trait_label := i.trait_label, 
-           on = "trait"]
+disting_traits[lookup_traits,
+               trait_label := i.trait_label,
+               on = "trait"]
+
+### Trait table for publication with traits as columns ----
+disting_traits_compl[lookup_traits,
+                     `:=`(trait_label = i.trait_label,
+                          trait_abbrev = i.abbrev),
+                     on = "trait"]
+
+# Rm traits that are not defining traits
+disting_traits_compl <- disting_traits_compl[!trait %in% c("locom_burrow", "bf_spherical"), ]
+disting_traits_pub <- dcast(disting_traits_compl,
+                             continent + group ~ trait_abbrev,
+                             fun.aggregate = fun_binary_length)
+
+# Change order according to the traits that occur most often as defining traits
+trait_order <- disting_traits_compl[, .N, by = trait_abbrev][order(-N), trait_abbrev]
+setcolorder(disting_traits_pub,
+            c("continent",
+              "group",
+              trait_order))
+disting_traits_pub[, (trait_order) := lapply(.SD, function(y)
+  fcase(y == 1, "x",
+        y == 0, " ")),
+  .SDcols = trait_order]
+# fwrite(
+#   disting_traits_pub,
+#   file = "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Paper/Tables/def_traits_x_0.csv",
+#   sep = ";"
+# )
+
+### Traits table for calc distances between words (i.e. traits) ----
 disting_traits <- disting_traits %>%
   arrange(factor(
     grouping_feature,
@@ -244,11 +297,11 @@ tab_fmatch_tc[, .(occur_continent = uniqueN(continent)),
 
 # Consider distances between defining traits (in characters)
 tab_fmatch_tc[order(lv_dist), ]
-# tab_fmatch_tc[, .(occur_continent = uniqueN(continent), lv_dist),
-#               by = V1
-# ] %>% 
-#   .[order(-occur_continent, lv_dist), ] %>%
-#   View(.)
+tab_fmatch_tc[, .(occur_continent = uniqueN(continent), lv_dist),
+              by = V1
+] %>%
+  .[order(-occur_continent, lv_dist), ] %>%
+  View(.)
 
 
 ## Explore different trait combinations ----

@@ -28,11 +28,14 @@ traits_eu_clim <- readRDS(file = file.path(
 traits_eu_clim[, .N, by = climateregion]
 
 # Check completeness and subset only for complete data (temp preference not considered)
-# completeness_trait_data(x = traits_eu_clim[, .SD, 
-#                                            .SDcols = patterns("size|feed|resp|locom|volt|temp|ovip")])
+# completeness_trait_data(
+#   x = traits_eu_clim[, .SD,
+#                      .SDcols = patterns("size|feed|resp|locom|volt|temp|ovip")],
+#   non_trait_cols = c("genus", "family", "order", "climateregion")
+# )
 traits_eu_clim <-
   na.omit(traits_eu_clim[, .SD, 
-  .SDcols = patterns("feed|resp|volt|size|locom|ovip|climateregion|genus|family|order")])
+  .SDcols = patterns("feed|resp|volt|size|locom|climateregion|genus|family|order")]) # ovip
 str(traits_eu_clim)
 traits_eu_clim[, .N, by = climateregion]
 

@@ -190,24 +190,34 @@ most_imp_vars[, color := fcase(!is.na(five_most_imp),
                                is.na(five_most_imp),
                                "gray70")]
 
+# add trait labels
+lookup_traits <-
+  readRDS(file = "/home/kunzst/Dokumente/Projects/Trait_DB/Convergence-trait-profiles/Cache/lookup_traits.rds")
+lookup_traits <- rbind(lookup_traits,
+                       data.table(
+                         trait = c("locom_burrow", "bf_spherical"),
+                         trait_label = c("burrow", "spherical"),
+                         abbrev = c("burrower", "spherical")
+                       ))
+most_imp_vars[lookup_traits, trait_abbrev := i.abbrev, on = c(traits = "trait")]
+
 # grouping features
 most_imp_vars[, grouping_feature := sub("([a-z]{1,})(\\_)(.+)", "\\1", traits)]
-
 most_imp_vars[order(continents, -y), tail(.SD, n = 5), by = continents]
 
 # names for facets
 wrap_names <- c(
-  "AUS" = "AUS",
-  "EU" = "EUR",
-  "NOA" = "NA",
-  "NZ" = "NZ",
-  "SA" = "SA",
-  "resp" = "Resp.",
+  "AUS" = "Australia",
+  "EU" = "Europe",
+  "NOA" = "North America",
+  "NZ" = "New Zealand",
+  "SA" = "Southern Africa",
+  "resp" = "Respiration",
   "size" = "Size",
-  "feed" = "Feed. m.",
-  "locom" = "Locom.",
-  "bf" = "Body f.",
-  "volt" = "Volt."
+  "feed" = "Feed. mode",
+  "locom" = "Locomotion",
+  "bf" = "Body form",
+  "volt" = "Voltinism"
 )
 ggplot(most_imp_vars[order(continents, -y), ],
        aes(
@@ -220,7 +230,7 @@ ggplot(most_imp_vars[order(continents, -y), ],
     mapping = aes(
       x = as.factor(traits),
       y = y + 0.01,
-      label = traits,
+      label = trait_abbrev,
       hjust = 0.1
     ),
     size = 4.1
@@ -275,9 +285,14 @@ for (region in c("AUS", "EU", "NOA", "NZ", "SA")) {
 
 # TODO: show values of all iterations
 boruta_res <- lapply(output, attStats)
-saveRDS(boruta_res, 
-        file = file.path(data_cache, "boruta_res.rds"))
-
+# saveRDS(boruta_res, 
+#         file = file.path(data_cache, "boruta_res.rds"))
+boruta_res <- readRDS(file = file.path(data_cache, "boruta_res.rds"))
+names(boruta_res) <- c("AUS",
+                       "EUR",
+                       "NA",
+                       "NZ",
+                       "SAf")
 for(region in names(boruta_res)) {
   plot <- fun_boruta_results(data = boruta_res[[region]]) +
     ggtitle(paste0(region, ": Variable selection with Boruta"))

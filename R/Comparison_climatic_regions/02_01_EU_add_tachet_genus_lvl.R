@@ -22,7 +22,10 @@ genus_eu_cr[, sum_occ_mcr := apply(.SD, 1, sum),
                         "polar",
                         "temperate")]
 genera_one_cr <- genus_eu_cr[sum_occ_mcr == 1, genus]
-genus_eu_cr[polar == 1 & arid == 0 & cold == 0 & temperate == 0, ]
+
+# Polar and arid
+# genus_eu_cr[polar == 1, ]
+# genus_eu_cr[arid == 1, ]
 
 # Aggregate to genus-level
 eu_glvl <- direct_agg(
@@ -37,7 +40,7 @@ eu_glvl <- direct_agg(
 )
 eu_glvl <- eu_glvl[genus %in% genera_one_cr, ]
 completeness_trait_data(x = eu_glvl[,.SD,
-                                    .SDcols = patterns("size|feed|resp|locom|volt|temp")],
+                                    .SDcols = patterns("size|feed|resp|locom|volt|temp|bf")],
                         non_trait_cols = "genus")
 
 # Delete the Plesioperla sp. (Plesioperla is there with the same information)

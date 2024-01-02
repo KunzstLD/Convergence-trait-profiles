@@ -19,9 +19,14 @@ setDT(hull)
 # Base plot of PCOA scores (first two axes)
 # needs comb_pcoa from 02_01_PCOA.R
 pcoa_base_pl <- ggplot(pcoa_scores, aes(x = A1, y = A2)) +
-  geom_point(alpha = 0.15) +
-  scale_color_d3(name = "Continent",
-                 labels = c("AUS", "EUR", "NA", "NZ", "SA")) +
+  geom_point(alpha = 0.8, size = 2.5, aes(shape = continent, color = continent)) +
+  scale_color_manual(name = "Region",
+                     labels = c("AUS", "EUR", "NA", "NZ", "SAf"), 
+                     values = c("steelblue", "gold4", "forestgreen", "orangered4", "orchid3")) +
+  scale_shape_manual(name = "Region",
+                     labels = c("AUS", "EUR", "NA", "NZ", "SAf"),
+                     values = c(1, 6, 3, 7, 5)) +
+  # guides(shape = "none") +
   labs(x = paste0("Axis 1",
                   " (",
                   round(
@@ -48,19 +53,39 @@ pcoa_base_pl <- ggplot(pcoa_scores, aes(x = A1, y = A2)) +
                               size = 14),
     panel.grid = element_blank()
   )
-
-# Combine both plots?
-pcoa_final_pl <- pcoa_base_pl + geom_polygon(
-  data = hull,
-  alpha = 0.05,
-  aes(color = continent)
-)
-# pcoa_base_pl + geom_polygon(
-#   data = hull,
-#   alpha = 0.05,
-#   aes(color = continent)
-# ) +
-#   facet_wrap(~continent)
+pcoa_final_pl <- pcoa_base_pl +
+  geom_polygon(data = hull,
+               alpha = 0.01,
+               aes(color = continent), 
+               linewidth = 0.9) +
+  geom_point(data =  ~ .x[continent == "AUS" & family %in% c(
+    "Veliidae",
+    "Pleidae",
+    "Hydrometridae",
+    "Notonectidae",
+    "Dytiscidae",
+    "Gerridae",
+    "Hygrobiidae",
+    "Eustheniidae",
+    "Synthemistidae",
+    "Libellulidae",
+    "Corduliidae"
+  ),],
+  fill = "black",
+  size = 2.5,
+  shape = 1) +
+  annotate(
+    "text",
+    x = 0.35,
+    y = 0.35,
+    label = paste0(
+      round(comb_pcoa$eig[1] / sum(comb_pcoa$eig) * 100,
+            digits = 2) + round(comb_pcoa$eig[2] / sum(comb_pcoa$eig) * 100,
+                                digits = 2),
+      "% expl. variance on the \n first factorial plane"
+    ),
+    size = 5
+  )
 ggsave(
   filename = file.path(
     data_paper,

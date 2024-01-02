@@ -72,25 +72,27 @@ unique(trait_CONT[continent == "AUS" & family %in% unique(AUS_outside_taxa_lf$fa
 
 # Compare trait profiles from these families from AUS with 
 # the same families from other continents/regions
-trait_CONT[family %in% c("Veliidae",
-"Pleidae",
-"Hydrometridae",
-"Notonectidae",
-"Dytiscidae",
-"Gerridae",
-"Hygrobiidae",
-"Eustheniidae",
-"Synthemistidae",
-"Libellulidae",
-"Corduliidae"), ] %>% 
-  .[family == "Dytiscidae" & grouping_feature %in% c("feed", 
-                                                     "locom"), ] %>% 
-  ggplot(., aes(x = trait, 
-                y = affinity, 
-                color = continent)) +
-  geom_point() +
-  facet_wrap(~grouping_feature,
-             scales = "free")
+# trait_CONT[family %in% c(
+#   "Veliidae",
+#   "Pleidae",
+#   "Hydrometridae",
+#   "Notonectidae",
+#   "Dytiscidae",
+#   "Gerridae",
+#   "Hygrobiidae",
+#   "Eustheniidae",
+#   "Synthemistidae",
+#   "Libellulidae",
+#   "Corduliidae"
+# ),] %>%
+#   .[family == "Dytiscidae" & grouping_feature %in% c("feed",
+#                                                      "locom"),] %>%
+#   ggplot(., aes(x = trait,
+#                 y = affinity,
+#                 color = continent)) +
+#   geom_point() +
+#   facet_wrap( ~ grouping_feature,
+#               scales = "free")
 
 # Calc diff. in affinities for each family
 outlier_families <- trait_CONT[family %in% c(
@@ -127,14 +129,15 @@ outlier_families_diff <- outlier_families[occr_continent > 1, ] %>%
   )] 
 outlier_families_diff[trait %in% c("resp_pls_spi",
                                    "locom_swim",
-                                   "volt_semi"),] %>% 
+                                   "volt_semi",
+                                   "volt_bi_multi"),] %>% 
   melt(., id.vars = c("family", "order", "trait", "trait_label")) %>% 
   .[value > 0, uniqueN(family), by = "trait"] 
 
 # Table for SI
 outlier_families_diff[trait %in% c("resp_pls_spi",
-                                   "locom_swim",
-                                   "volt_semi"), ] %>%
+                                   "locom_swim", 
+                                   "volt_bi_multi"), ] %>%
   fwrite(.,
          file.path(data_paper, "Tables", "AUS_outlier_affinity_comparisons.csv"))
 
@@ -143,12 +146,13 @@ melt(outlier_families_diff, id.vars = c("family", "order", "trait")) %>%
   .[value == 1, ]
 
 # Cumulative highest affinity differences
-melt(outlier_families_diff, id.vars = c("family", "order", "trait")) %>% 
-  .[, sum(value, na.rm = TRUE), by = c("variable", "trait")] %>% 
-  .[order(-V1, trait, variable)]
+# melt(outlier_families_diff, id.vars = c("family", "order", "trait")) %>% 
+#   .[, sum(value, na.rm = TRUE), by = c("variable", "trait")] %>% 
+#   .[order(-V1, trait, variable)]
 
 ### Taxa in high density area ----
 # Characterize trait spaces in these areas
+pcoa_scores <- readRDS(file = file.path(data_cache, "pcoa_scores.rds"))
 contour_25 <- readRDS(file.path(data_cache, "contour_25_TS.rds"))
 contour_50 <- readRDS(file.path(data_cache, "contour_50_TS.rds"))
 pcoa_scores[, family := sub("(.+)(\\_)(.+)", "\\3", id)]
@@ -168,10 +172,10 @@ trait_CONT_50 <- trait_CONT[id %in% pcoa_scores[contour_50, id],]
 # Which groups are present per continent? 
 group_50 <- unique(trait_CONT_50[, group, by = continent]) %>% 
   .[order(continent, group), ]
-
 unique(trait_CONT_50[, .(group, family), by = continent]) %>%
   .[, paste(family, collapse = ", "), by = .(continent, group)] %>%
   .[order(continent, group), ] %>% 
+  View()
   fwrite(.,
          file = file.path(data_out, "TPGs_in_50_contour.csv"),
          sep = ";")
@@ -277,190 +281,58 @@ trait_CONT[continent == "NZ" &
   dcast(., ... ~ group, value.var = "affinity")
 
 
-# Variability in defining traits ----
-# disting_traits <- readRDS(file.path(data_cache, "disting_traits_compl.rds"))
-
-## TPG-wise ----
+# Example families ----
+unique(trait_CONT_wf[, .(continent, group, family, order, prop_order, n_families_gr)]) %>%
+  .[order(continent, group, -prop_order, order),] %>%
+  .[continent == "SA" & group %in% c(7, 8, 9, 10),]
   
-### Considr all def. traits together ----
-# Coarse approach just using the defining traits as categories
-# dist_within_tpgs <- list() 
-# for(i in unique(disting_traits$continent)) {
-#     dat <- disting_traits[continent == i, .(tpg_id, trait)] %>%
-#       dcast(.,
-#             tpg_id ~ trait,
-#             value.var = "trait",
-#             fun.aggregate = fun_binary_length)
-#     setDF(dat)
-#     rownames(dat) <- dat$tpg_id
-#     dat$tpg_id <- NULL
-#     
-#     dat <- ktab.list.df(list(dat))
-#     dist_within_tpgs[[i]] <- as.vector(dist.ktab(dat, type = "D"))
-# }
-# dist_within_tpgs <- lapply(dist_within_tpgs, as.data.table) %>% 
-#   rbindlist(., idcol = "continent")
-# setnames(dist_within_tpgs, "V1", "dist_within_tpgs")
-# dist_within_tpgs[, `:=`(
-#   mean = mean(dist_within_tpgs),
-#   median = median(dist_within_tpgs),
-#   sd = sd(dist_within_tpgs)
-# ), by = "continent"]
-# 
-# # This plot with env. heterogeneity?
-# ggplot(dist_within_tpgs, aes(x = continent, y = dist_within_tpgs))+
-#   geom_violin()+
-#   geom_jitter(width = 0.05)+
-#   stat_summary(fun = "mean", colour = "red")+
-#   theme_bw()
-
-### Using mean trait profiles ----
-# TODO: Can these be done without the mean trait profile?
-trait_CONT <-
-    readRDS(file.path(data_cache, "trait_dat_grp_assig.rds"))
-trait_CONT_mtpgs <- trait_CONT[, .(continent,
-                                   mean_affinity = mean(affinity)),
-                                 by = c("continent" , "group", "trait")]
-trait_CONT_mtpgs <- trait_CONT_mtpgs[, .(continent,
-                                         group,
-                                         trait,
-                                         mean_affinity)] %>%
-  unique(.) %>%
-  dcast(., ... ~ trait, value.var = "mean_affinity")
-trait_CONT_mtpgs[, tpg_id := paste0(continent, "_", group)]
-normalize_by_rowSum(trait_CONT_mtpgs,
-                    non_trait_cols = c("continent",
-                                       "group",
-                                       "tpg_id"))
   
-dist_between_tpgs_aff <- list()
-for (i in unique(trait_CONT_mtpgs$continent)) {
-  dat <- trait_CONT_mtpgs[continent == i,]
-  setDF(dat)
-  rownames(dat) <- dat$tpg_id
-  dat$tpg_id <- NULL
-  dat$group <- NULL
-  dat$continent <- NULL
+trait_CONT[continent == "EU" & group == 1,] %>%
+  .[order %in% c("Diptera", "Hemiptera")] %>%
+  .[order == "Diptera",]
   
-  vec <- sub("\\_.*", "\\1", names(dat))
-  blocks <- rle(vec)$lengths
-  dat <- prep.fuzzy(dat, blocks)
-  dat <- ktab.list.df(list(dat))
-  dist_between_tpgs_aff[[i]] <-
-    as.vector(dist.ktab(dat, type = "F"))
-}
-dist_between_tpgs_aff <-
-  lapply(dist_between_tpgs_aff, as.data.table) %>%
-  rbindlist(., idcol = "continent")
-setnames(dist_between_tpgs_aff, "V1", "dist")
-dist_between_tpgs_aff[, `:=`(mean = mean(dist),
-                            median = median(dist),
-                            sd = sd(dist)), by = "continent"]
-
-# Plot, arranged according to the number of Köppen-Geiger zones
-# TODO: Add a line/arrow in the plot indicating the direction of environmental heterogeneity
-# and the number of Köppen-Geiger climate zones
-dist_between_tpgs_aff[, continent := factor(continent,
-                                           levels = c("NZ", "SA", "AUS", "EU", "NOA"))]
-
-ggplot(dist_between_tpgs_aff, aes(x = continent, y = dist)) +
-  geom_violin() +
-  geom_jitter(width = 0.05) +
-  stat_summary(fun = "mean", color = "red") +
-  labs(x = "Continent or region",
-       y = "Distance between mean trait profiles of TPGs") +
-  scale_x_discrete(labels = c("NZ", "SA", "AUS", "EUR", "NA")) +
-  theme_bw() +
-  theme(
-    axis.title = element_text(size = 16),
-    axis.text.x = element_text(family = "Roboto Mono",
-                               size = 14),
-    axis.text.y = element_text(family = "Roboto Mono",
-                               size = 14),
-    legend.title = element_text(family = "Roboto Mono",
-                                size = 16),
-    legend.text = element_text(family = "Roboto Mono",
-                               size = 14),
-    strip.text = element_text(family = "Roboto Mono",
-                              size = 14)
-  ) +
-  annotate(
-    "segment",
-    x = 0.5,
-    y = 0,
-    xend = 5.5,
-    yend = 0,
-    size = 5.5,
-    linejoin = "mitre",
-    arrow = arrow(type = "closed", length = unit(0.01, "npc"))
-  ) +
-  annotate(
-    "text",
-    x = 3,
-    y = 0,
-    label = "Environmental heterogeneity",
-    color = "white",
-    size = 4,
-    fontface = "bold"
-  ) +
-  annotate(
-    "text",
-    x = 1,
-    y = 0.08,
-    label = "KG-zones: 9",
-    color = "black",
-    size = 4,
-    fontface = "bold"
-  ) +
-  annotate(
-    "text",
-    x = 2,
-    y = 0.08,
-    label = "KG-zones: 14",
-    color = "black",
-    size = 4,
-    fontface = "bold"
-  ) +
-  annotate(
-    "text",
-    x = 3,
-    y = 0.08,
-    label = "KG-zones: 17",
-    color = "black",
-    size = 4,
-    fontface = "bold"
-  ) +
-  annotate(
-    "text",
-    x = 4,
-    y = 0.08,
-    label = "KG-zones: 18",
-    color = "black",
-    size = 4,
-    fontface = "bold"
-  ) +
-  annotate(
-    "text",
-    x = 5,
-    y = 0.08,
-    label = "KG-zones: 22",
-    color = "black",
-    size = 4,
-    fontface = "bold"
-  )
-ggsave(
-  filename = file.path(
-    data_paper,
-    "Graphs",
-    "Distance_between_tpgs.png"
-  ),
-  width = 35,
-  height = 20,
-  units = "cm"
-)
-
-# range
-dist_between_tpgs_aff[, range(dist), by = "continent"]
+trait_CONT[continent == "EU" & group == 2,] %>%
+  .[order %in% c("Coleoptera", "Hemiptera")]
+  
+trait_CONT[continent == "EU" & group == 3,] %>%
+  .[order %in% c("Coleoptera", "Diptera")] %>%
+  .[order == "Diptera",]
+  
+trait_CONT[continent == "EU" & group == 4,] %>%
+  .[order %in% c("Coleoptera", "Diptera")] %>%
+  .[order == "Diptera",]
+  
+trait_CONT[continent == "EU" & group == 5,] %>%
+  .[order %in% c("Trichoptera", "Plecoptera")]
+  
+trait_CONT[continent == "EU" & group == 6,] %>%
+  .[order %in% c("Plecoptera", "Trichoptera")] %>%
+  .[order == "Trichoptera",]
+  
+trait_CONT[continent == "EU" & group == 7,] %>%
+  .[order %in% c("Coleoptera", "Ephemeroptera")] %>%
+  .[order == "Ephemeroptera",]
+  
+trait_CONT[continent == "EU" & group == 8,] %>%
+  .[order %in% c("Odonata", "Plecoptera")] %>%
+  .[order == "Plecoptera",]
+  
+trait_CONT[continent == "EU" & group == 9,] %>%
+  .[order %in% c("Ephemeroptera", "Trichoptera")] %>%
+  .[order == "Trichoptera",]
+  
+trait_CONT[continent == "EU" & group == 10,] %>%
+  .[order %in% c("Ephemeroptera", "Plecoptera")]
+  
+trait_CONT[continent == "EU" & group == 11,] %>%
+  .[order %in% c("Plecoptera", "Trichoptera")]
+  
+trait_CONT[continent == "EU" & group == 12,] %>%
+  .[order %in% c("Ephemeroptera", "Trichoptera")]
+  
+trait_CONT[continent == "EU" & group %in% c(1, 2),] %>%
+  .[affinity > 0.5,] %>%
+  .[order(group),]
 
 # ___________________________________________________________________________
 ## Comparison to non-aggregated data ----
@@ -659,6 +531,13 @@ setcolorder(
   )
 )
 Trait_NZ_cp <- copy(Trait_NZ)
+
+# Taxonomic resolution
+Trait_NZ_cp[, n_total := .N]
+unique(Trait_NZ_cp[!is.na(species), .N/n_total])
+unique(Trait_NZ_cp[is.na(species) & !is.na(genus), .N/n_total])
+unique(Trait_NZ_cp[is.na(species) & is.na(genus) & !is.na(family), .N/n_total])
+
 Trait_NZ_cp[, c(
   "species",
   "genus",
@@ -666,7 +545,8 @@ Trait_NZ_cp[, c(
   "order",
   "unique_id",
   "dev_hemimetabol",
-  "dev_holometabol"
+  "dev_holometabol",
+  "n_total"
 ) := NULL]
 
 ### Cluster analysis NZ ----

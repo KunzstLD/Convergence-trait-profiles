@@ -58,18 +58,20 @@ all.wgs.sf <- base::merge(all.wgs.sf,
 # Looked up coordinates "-117.835, 33.5814" in QGIS using the 
 # Koppen Geiger Raster Map. 
 # Results:  6,BSh,Arid_steppe_hot  
+# Duplicate! -> taken care of later
 all.wgs.sf$Letter_code[c(1:3,5,6,8:10)] <- "BSh"
 all.wgs.sf$KoppenGeigerIndex[c(1:3,5,6,8:10)] <- 6
 all.wgs.sf$Full_description[c(1:3,5,6,8:10)] <- "Arid_steppe_hot"
 
 # For coordinates: "-94.80336, 29.592028"
 # Results: 14,Cfa,Temperate_nodryseason_hotsummer
+# Duplicate!-> taken care of later
 all.wgs.sf$Letter_code[c(4,7)] <- "Cfa"
 all.wgs.sf$KoppenGeigerIndex[c(4,7)] <- 14
 all.wgs.sf$Full_description[c(4,7)] <- "Temperate_nodryseason_hotsummer"
 
 # Exporting file
 setDT(all.wgs.sf)
-all.wgs.sf$Full_description %>% unique
+# unique(all.wgs.sf[order(Full_description), .(Full_description, Letter_code)])
 saveRDS(all.wgs.sf, file.path(data_in, "Conus_data_KoppenGeiger.rds"))
 fwrite(all.wgs.sf, file.path(data_in, "Conus_data_KoppenGeiger.csv"))

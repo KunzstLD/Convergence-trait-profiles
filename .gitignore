@@ -24,3 +24,9 @@ definition_major_climatic_zones.txt
 # vscode settings
 .vscode/
 .httr-oauth
+
+# tests
+R/test_distance_measure.Rmd
+R/test_TPGs_env_heterogeneity_spec_genus_fam1.R
+R/test_TPGs_env_heterogeneity_spec_genus_fam2.R
+R/test_distance_measure.Rmd
